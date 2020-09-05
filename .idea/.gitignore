@@ -6,3 +6,11 @@
 /dataSources.local.xml
 # Editor-based HTTP Client requests
 /httpRequests/
+/.name
+/codeStyles/codeStyleConfig.xml
+/misc.xml
+/ml-learn.iml
+/modules.xml
+/inspectionProfiles/profiles_settings.xml
+/libraries/R_User_Library.xml
+/vcs.xml
