@@ -7,4 +7,8 @@
 将删除 .idea/ml-learn.iml
 将删除 .idea/modules.xml
 将删除 .idea/vcs.xml
-/data/mnist_20200906_1448.log
+/data/
+将删除 deep/__pycache__/
+将删除 deep/opencv/
+将删除 deep/torch/__pycache__/
+将删除 util/__pycache__/

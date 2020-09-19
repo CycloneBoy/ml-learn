@@ -6,3 +6,6 @@
 
 
 WORK_DIR = "/home/sl/workspace/python/a2020/ml-learn"
+
+CIFAR10_CLASSES = ('plane', 'car', 'bird', 'cat',
+           'deer', 'dog', 'frog', 'horse', 'ship', 'truck')

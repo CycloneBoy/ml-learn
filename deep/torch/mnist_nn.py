@@ -38,7 +38,7 @@ test_dataset = torchvision.datasets.MNIST(root=DATA_MNIST_DIR,
                                           train=False, transform=torchvision.transforms.ToTensor(),
                                           download=True)
 
-# 转载数据
+# 装载数据
 batch_size = 100
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size)
 print('len(train_loader) = {}'.format(len(train_dataset)))
