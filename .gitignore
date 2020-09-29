@@ -12,3 +12,7 @@
 将删除 deep/opencv/
 将删除 deep/torch/__pycache__/
 将删除 util/__pycache__/
+/pyqt5/designer/.xdp_MainWindow.CI2HR0
+将删除 nlp/__pycache__/
+将删除 pyqt5/__pycache__/
+将删除 pyqt5/designer/__pycache__/
