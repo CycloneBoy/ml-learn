@@ -90,7 +90,6 @@ class LetNet(nn.Module):
         return output
 
 
-
 def load_data_fashion_mnist(batch_size, resize=None, root=DATA_MNIST_DIR):
     """Download the fashion mnist dataset and then load into memory."""
     # 加载训练集
@@ -291,8 +290,8 @@ def vgg11_small():
     return net
 
 
-def print_net_shape(net):
-    X = torch.rand(1, 1, 224, 224)
+def print_net_shape(net,size=224):
+    X = torch.rand(1, 1, size, size)
     for name, blk in net.named_children():
         X = blk(X)
         print(name, 'output shape: ', X.shape)
@@ -370,10 +369,7 @@ def google_lenet():
     net = GoogLeNet()
     print(net)
 
-    X = torch.rand(1, 1, 96, 96)
-    for name, blk in net.named_children():
-        X = blk(X)
-        print(name, 'output shape: ', X.shape)
+    print_net_shape(net,size=96)
     return net
 
 
@@ -411,6 +407,31 @@ class GoogLeNet(nn.Module):
         return self.net(x)
 
 
+def batch_norm(is_training, X, gamma, beta, moving_mean, moving_var, eps, momentum):
+    # 判断当前模式是训练模式还是预测模式
+    if not is_training:
+        # 如果是在预测模式下，直接使用传入的移动平均所得的均值和方差
+        X_hat = (X - moving_mean) / torch.sqrt(moving_var + eps)
+    else:
+        assert len(X.shape) in (2, 4)
+        if len(X.shape) == 2:
+            # 使用全连接层的情况，计算特征维上的均值和方差
+            mean = X.mean(dim=0)
+            var = ((X - mean) ** 2).mean(dim=0)
+        else:
+            # 使用二维卷积层的情况，计算通道维上（axis=1）的均值和方差。这里我们需要保持
+            # X的形状以便后面可以做广播运算
+            mean = X.mean(dim=0, keepdim=True).mean(dim=2, keepdim=True).mean(dim=3, keepdim=True)
+            var = ((X - mean) ** 2).mean(dim=0, keepdim=True).mean(dim=2, keepdim=True).mean(dim=3, keepdim=True)
+        # 训练模式下用当前的均值和方差做标准化
+        X_hat = (X - mean) / torch.sqrt(var + eps)
+        # 更新移动平均的均值和方差
+        moving_mean = momentum * moving_mean + (1.0 - momentum) * mean
+        moving_var = momentum * moving_var + (1.0 - momentum) * var
+    Y = gamma * X_hat + beta  # 拉伸和偏移
+    return Y, moving_mean, moving_var
+
+
 def batch_norm1(is_training, X, gamma, beta, moving_mean, moving_var, eps, momentum):
     # 判断当前模式是训练模式还是预测模式
     if not is_training:
@@ -435,29 +456,6 @@ def batch_norm1(is_training, X, gamma, beta, moving_mean, moving_var, eps, momen
     Y = gamma * X_hat + beta  # 拉伸和偏移
     return Y, moving_mean, moving_var
 
-def batch_norm(is_training, X, gamma, beta, moving_mean, moving_var, eps, momentum):
-    # 判断当前模式是训练模式还是预测模式
-    if not is_training:
-        # 如果是在预测模式下，直接使用传入的移动平均所得的均值和方差
-        X_hat = (X - moving_mean) / torch.sqrt(moving_var + eps)
-    else:
-        assert len(X.shape) in (2, 4)
-        if len(X.shape) == 2:
-            # 使用全连接层的情况，计算特征维上的均值和方差
-            mean = X.mean(dim=0)
-            var = ((X - mean) ** 2).mean(dim=0)
-        else:
-            # 使用二维卷积层的情况，计算通道维上（axis=1）的均值和方差。这里我们需要保持
-            # X的形状以便后面可以做广播运算
-            mean = X.mean(dim=0, keepdim=True).mean(dim=2, keepdim=True).mean(dim=3, keepdim=True)
-            var = ((X - mean) ** 2).mean(dim=0, keepdim=True).mean(dim=2, keepdim=True).mean(dim=3, keepdim=True)
-        # 训练模式下用当前的均值和方差做标准化
-        X_hat = (X - mean) / torch.sqrt(var + eps)
-        # 更新移动平均的均值和方差
-        moving_mean = momentum * moving_mean + (1.0 - momentum) * mean
-        moving_var = momentum * moving_var + (1.0 - momentum) * var
-    Y = gamma * X_hat + beta  # 拉伸和偏移
-    return Y, moving_mean, moving_var
 
 class BatchNorm(nn.Module):
     def __init__(self, num_features, num_dims):
@@ -484,21 +482,20 @@ class BatchNorm(nn.Module):
         return Y
 
 
-
 class LetNetWithBatchNormal(nn.Module):
     def __init__(self):
         super(LetNetWithBatchNormal, self).__init__()
         self.net = nn.Sequential(
-            nn.Conv2d(1, 6, 5), # in_channels, out_channels, kernel_size
+            nn.Conv2d(1, 6, 5),  # in_channels, out_channels, kernel_size
             BatchNorm(6, num_dims=4),
             nn.Sigmoid(),
-            nn.MaxPool2d(2, 2), # kernel_size, stride
+            nn.MaxPool2d(2, 2),  # kernel_size, stride
             nn.Conv2d(6, 16, 5),
             BatchNorm(16, num_dims=4),
             nn.Sigmoid(),
             nn.MaxPool2d(2, 2),
             FlattenLayer(),
-            nn.Linear(16*4*4, 120),
+            nn.Linear(16 * 4 * 4, 120),
             BatchNorm(120, num_dims=2),
             nn.Sigmoid(),
             nn.Linear(120, 84),
@@ -536,6 +533,160 @@ class LetNetWithTorchBatchNormal(nn.Module):
     def forward(self, x):
         return self.net(x)
 
+
+class Residual(nn.Module):
+    def __init__(self, in_channels, out_channels, use_1x1conv=False, stride=1):
+        super(Residual, self).__init__()
+        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, stride=stride)
+        self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
+        if use_1x1conv:
+            self.conv3 = nn.Conv2d(in_channels, out_channels, kernel_size=1, stride=stride)
+        else:
+            self.conv3 = None
+        self.bn1 = nn.BatchNorm2d(out_channels)
+        self.bn2 = nn.BatchNorm2d(out_channels)
+
+    def forward(self, X):
+        Y = F.relu(self.bn1(self.conv1(X)))
+        Y = self.bn2(self.conv2(Y))
+        if self.conv3:
+            X = self.conv3(X)
+        return F.relu(Y + X)
+
+
+def resnet_block(in_channels, out_channels, num_residuals, first_block=False):
+    if first_block:
+        assert in_channels == out_channels  # 第一个模块的通道数同输入通道数一致
+    blk = []
+    for i in range(num_residuals):
+        if i == 0 and not first_block:
+            blk.append(Residual(in_channels, out_channels, use_1x1conv=True, stride=2))
+        else:
+            blk.append(Residual(out_channels, out_channels))
+    return nn.Sequential(*blk)
+
+
+class ResNet18(nn.Module):
+    '''
+   这里每个模块里有4个卷积层（不计算1×11×1卷积层），加上最开始的卷积层和最后的全连接层，共计18层。这个模型通常也被称为ResNet-18
+    '''
+
+    def __init__(self):
+        super(ResNet18, self).__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+            resnet_block(64, 64, 2, first_block=True),
+            resnet_block(64, 128, 2),
+            resnet_block(128, 256, 2),
+            resnet_block(256, 512, 2),
+            GlobalAvgPool2d(),
+            nn.Sequential(FlattenLayer(), nn.Linear(512, 10))
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+def ResNet():
+    net = nn.Sequential(
+        nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3),
+        nn.BatchNorm2d(64),
+        nn.ReLU(),
+        nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+
+    net.add_module("resnet_block1", resnet_block(64, 64, 2, first_block=True))
+    net.add_module("resnet_block2", resnet_block(64, 128, 2))
+    net.add_module("resnet_block3", resnet_block(128, 256, 2))
+    net.add_module("resnet_block4", resnet_block(256, 512, 2))
+
+    net.add_module("global_avg_pool", GlobalAvgPool2d()) # GlobalAvgPool2d的输出: (Batch, 512, 1, 1)
+    net.add_module("fc", nn.Sequential(FlattenLayer(), nn.Linear(512, 10)))
+    return net
+
+def print_resnet():
+    net = ResNet18()
+    print_net_shape(net)
+
+
+def conv_block(in_channels, out_channels):
+    '''
+    DenseNet使用了ResNet改良版的“批量归一化、激活和卷积”结构
+    '''
+    blk = nn.Sequential(
+        nn.BatchNorm2d(in_channels),
+        nn.ReLU(),
+        nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
+    )
+    return blk
+
+
+class DenseBlock(nn.Module):
+    def __init__(self, num_convs, in_channels, out_channels):
+        super(DenseBlock, self).__init__()
+        net = []
+        for i in range(num_convs):
+            in_c = in_channels + i * out_channels
+            net.append(conv_block(in_c, out_channels))
+        self.net = nn.ModuleList(net)
+        self.out_channels = in_channels + num_convs * out_channels  # 计算输出通道数
+
+    def forward(self, X):
+        for blk in self.net:
+            Y = blk(X)
+            X = torch.cat((X, Y), dim=1)  # 在通道维上将输入和输出连结
+        return X
+
+
+def transition_block(in_channels, out_channels):
+    blk = nn.Sequential(
+        nn.BatchNorm2d(in_channels),
+        nn.ReLU(),
+        nn.Conv2d(in_channels, out_channels, kernel_size=1),
+        nn.AvgPool2d(kernel_size=2, stride=2))
+    return blk
+
+
+def print_dense_net():
+    blk = DenseBlock(2, 3, 10)
+    X = torch.rand(4, 3, 8, 8)
+    Y = blk(X)
+    res = Y.shape
+    print(res)
+
+    blk = transition_block(23,10)
+    print(blk(Y).shape)
+
+
+def DenseNet():
+    net = nn.Sequential(
+        nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3),
+        nn.BatchNorm2d(64),
+        nn.ReLU(),
+        nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+
+    num_channels, growth_rate = 64, 32  # num_channels为当前的通道数
+    num_convs_in_dense_blocks = [4, 4, 4, 4]
+
+    for i, num_convs in enumerate(num_convs_in_dense_blocks):
+        DB = DenseBlock(num_convs, num_channels, growth_rate)
+        net.add_module("DenseBlosk_%d" % i, DB)
+        # 上一个稠密块的输出通道数
+        num_channels = DB.out_channels
+        # 在稠密块之间加入通道数减半的过渡层
+        if i != len(num_convs_in_dense_blocks) - 1:
+            net.add_module("transition_block_%d" % i, transition_block(num_channels, num_channels // 2))
+            num_channels = num_channels // 2
+
+    net.add_module("BN", nn.BatchNorm2d(num_channels))
+    net.add_module("relu", nn.ReLU())
+    net.add_module("global_avg_pool", GlobalAvgPool2d())  # GlobalAvgPool2d的输出: (Batch, num_channels, 1, 1)
+    net.add_module("fc", nn.Sequential(FlattenLayer(), nn.Linear(num_channels, 10)))
+    return net
+
+
 if __name__ == '__main__':
     # net = LetNet()
     # print(net)
@@ -550,4 +701,8 @@ if __name__ == '__main__':
     # vgg11_small()
 
     # nin_net()
-    google_lenet()
+    # google_lenet()
+    # print_resnet()
+    # print_dense_net()
+    print_net_shape(ResNet())
+    # print_net_shape(DenseNet(),size=96)

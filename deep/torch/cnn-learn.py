@@ -287,11 +287,56 @@ def test_letnet_torch_batch_normal():
     # print(net[1].gamma.view((-1,)), net[1].beta.view((-1,)))
 
 
+def test_residual():
+    blk = d2l.Residual(3, 3)
+    X = torch.rand((4,3,6,6))
+    res = blk(X).shape
+    print(res)
+
+    blk = d2l.Residual(3, 6,use_1x1conv=True,stride=2)
+    X = torch.rand((4,3,6,6))
+    res = blk(X).shape
+    print(res)
+
+
+def test_resnet():
+    log.info("测试　resnet")
+    net = d2l.ResNet18()
+    log.info(net)
+    batch_size = 256
+    # 如出现“out of memory”的报错信息，可减小batch_size或resize
+    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)
+
+    lr, num_epochs = 0.001, 5
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    d2l.train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
+
+    # print(net[1].gamma.view((-1,)), net[1].beta.view((-1,)))
+
+
+def test_dense_net():
+    log.info("测试　dense_net")
+    net = d2l.DenseNet()
+    log.info(net)
+    batch_size = 256
+    # 如出现“out of memory”的报错信息，可减小batch_size或resize
+    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)
+
+    lr, num_epochs = 0.001, 5
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    d2l.train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
+
+    # print(net[1].gamma.view((-1,)), net[1].beta.view((-1,)))
+
+
 if __name__ == '__main__':
     # test_letnet()
     # test_alexnet()
     # test_vgg11()
     # test_nin_net()
     # test_google_net()
-    test_letnet_batch_normal()
+    # test_letnet_batch_normal()
     # test_letnet_torch_batch_normal()
+    # test_residual()
+    # test_resnet()
+    test_dense_net()
