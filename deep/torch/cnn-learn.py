@@ -8,10 +8,16 @@
 
 import sys
 
+sys.path.append("..")
+
 import torch
 from torch import nn
 
-sys.path.append("..")
+import deep.torch.d2lzh_pytorch as d2l
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+log = d2l.log
 
 
 def corr2d(X, K):
@@ -114,10 +120,12 @@ K = torch.tensor([[[0, 1], [2, 3]], [[1, 2], [3, 4]]])
 res = corr2d_multi_in(X, K)
 print(res)
 
+
 # 5.3.2 多输出通道
 
 def corr2d_multi_in_out(X, K):
-    return torch.stack([corr2d_multi_in(X,k ) for k in K])
+    return torch.stack([corr2d_multi_in(X, k) for k in K])
+
 
 K = torch.stack([K, K + 1, K + 2])
 print(K.shape)
@@ -125,15 +133,17 @@ print(K.shape)
 res = corr2d_multi_in_out(X, K)
 print(res)
 
+
 # 5.3.3 1×11×1卷积层
 
 def corr2d_multi_in_out_1x1(X, K):
-    c_i,h,w = X.shape
+    c_i, h, w = X.shape
     c_o = K.shape[0]
-    X = X.view(c_i,h*w)
-    K = K.view(c_o,c_i)
-    Y = torch.mm(K,X)
-    return  Y.view(c_o,h,w)
+    X = X.view(c_i, h * w)
+    K = K.view(c_o, c_i)
+    Y = torch.mm(K, X)
+    return Y.view(c_o, h, w)
+
 
 X = torch.rand(3, 3, 3)
 K = torch.rand(2, 3, 1, 1)
@@ -145,7 +155,7 @@ res = (Y1 - Y2).norm().item() < 1e-6
 print(res)
 
 
-def pool2d(X,pool_size,mode='max'):
+def pool2d(X, pool_size, mode='max'):
     X = X.float()
     p_h, p_w = pool_size
     Y = torch.zeros((X.shape[0] - p_h + 1, X.shape[1] - p_w + 1))
@@ -164,7 +174,6 @@ print(res)
 
 X = torch.arange(16, dtype=torch.float).view((1, 1, 4, 4))
 print(X)
-
 
 pool2d = nn.MaxPool2d(3)
 res = pool2d(X)
@@ -186,4 +195,59 @@ res = pool2d(X)
 print(res)
 
 
+def test_letnet():
+    # LetNet
+    log.info("测试　LetNet")
+    net = d2l.LetNet()
+    log.info(net)
+    lr, num_epochs = 0.001, 5
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    batch_size = 256
+    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size=batch_size)
+    d2l.train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
 
+
+def test_alexnet():
+    # AlexNet
+    log.info("测试　AlexNet")
+    net = d2l.AlexNet()
+    log.info(net)
+    lr, num_epochs = 0.001, 5
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    # 这时候我们可以开始训练AlexNet了。相对于LeNet，由于图片尺寸变大了而且模型变大了，所以需要更大的显存，也需要更长的训练时间了。
+    batch_size = 32
+    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size=batch_size, resize=224)
+    d2l.train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
+
+
+def test_vgg11():
+    log.info("测试　vgg11")
+    net = d2l.vgg11_small()
+    log.info(net)
+    batch_size = 64
+    # 如出现“out of memory”的报错信息，可减小batch_size或resize
+    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size, resize=224)
+
+    lr, num_epochs = 0.001, 5
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    d2l.train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
+
+def test_nin_net():
+    log.info("测试　nin_net")
+    net = d2l.nin_net()
+    log.info(net)
+    batch_size = 64
+    # 如出现“out of memory”的报错信息，可减小batch_size或resize
+    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size, resize=224)
+
+    lr, num_epochs = 0.002, 5
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    d2l.train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
+
+
+
+if __name__ == '__main__':
+    # test_letnet()
+    # test_alexnet()
+    # test_vgg11()
+    test_nin_net()
