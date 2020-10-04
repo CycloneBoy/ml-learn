@@ -90,6 +90,7 @@ class LetNet(nn.Module):
         return output
 
 
+
 def load_data_fashion_mnist(batch_size, resize=None, root=DATA_MNIST_DIR):
     """Download the fashion mnist dataset and then load into memory."""
     # 加载训练集
@@ -270,10 +271,11 @@ def vgg11():
     fc_hidden_units = 4096  # 任意
     net = vgg(conv_arch, fc_features, fc_hidden_units)
     X = torch.rand(1, 1, 224, 224)
-    for name ,blk in net.named_children():
+    for name, blk in net.named_children():
         X = blk(X)
-        print(name,'output shape: ',X.shape)
+        print(name, 'output shape: ', X.shape)
     return net
+
 
 def vgg11_small():
     conv_arch = ((1, 1, 64), (1, 64, 128), (2, 128, 256), (2, 256, 512), (2, 512, 512))
@@ -297,7 +299,7 @@ def print_net_shape(net):
 
 
 def nin_block(in_channels, out_channels, kernel_size, stride, padding):
-    blk = nn.Sequential(nn.Conv2d(in_channels,out_channels,kernel_size,stride,padding),
+    blk = nn.Sequential(nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding),
                         nn.ReLU(),
                         nn.Conv2d(out_channels, out_channels, kernel_size=1),
                         nn.ReLU(),
@@ -306,20 +308,24 @@ def nin_block(in_channels, out_channels, kernel_size, stride, padding):
                         )
     return blk
 
+
 class GlobalAvgPool2d(nn.Module):
     '''
     这里的全局平均池化层即窗口形状等于输入空间维形状的平均池化层。NiN的这个设计的好处是可以显著减小模型参数尺寸，从而缓解过拟合。
     '''
+
     def __init__(self):
         super(GlobalAvgPool2d, self).__init__()
+
     def forward(self, x):
-        return F.avg_pool2d(x,kernel_size=x.size()[2:])
+        return F.avg_pool2d(x, kernel_size=x.size()[2:])
+
 
 def nin_net():
     net = nn.Sequential(
-        nin_block(1,96,kernel_size=11,stride=4,padding=0),
-        nn.MaxPool2d(kernel_size=3,stride=2),
-        nin_block( 96,256, kernel_size=5, stride=1, padding=2),
+        nin_block(1, 96, kernel_size=11, stride=4, padding=0),
+        nn.MaxPool2d(kernel_size=3, stride=2),
+        nin_block(96, 256, kernel_size=5, stride=1, padding=2),
         nn.MaxPool2d(kernel_size=3, stride=2),
         nin_block(256, 384, kernel_size=3, stride=1, padding=1),
         nn.MaxPool2d(kernel_size=3, stride=2),
@@ -335,6 +341,201 @@ def nin_net():
     # print_net_shape(net)
     return net
 
+
+class Inception(nn.Module):
+    # c1 - c4为每条线路里的层的输出通道数
+    def __init__(self, in_c, c1, c2, c3, c4):
+        super(Inception, self).__init__()
+        # 线路1，单1 x 1卷积层
+        self.p1_1 = nn.Conv2d(in_c, c1, kernel_size=1)
+        # 线路2，1 x 1卷积层后接3 x 3卷积层
+        self.p2_1 = nn.Conv2d(in_c, c2[0], kernel_size=1)
+        self.p2_2 = nn.Conv2d(c2[0], c2[1], kernel_size=3, padding=1)
+        # 线路3，1 x 1卷积层后接5 x 5卷积层
+        self.p3_1 = nn.Conv2d(in_c, c3[0], kernel_size=1)
+        self.p3_2 = nn.Conv2d(c3[0], c3[1], kernel_size=5, padding=2)
+        # 线路4，3 x 3最大池化层后接1 x 1卷积层
+        self.p4_1 = nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
+        self.p4_2 = nn.Conv2d(in_c, c4, kernel_size=1)
+
+    def forward(self, x):
+        p1 = F.relu(self.p1_1(x))
+        p2 = F.relu(self.p2_2(F.relu(self.p2_1(x))))
+        p3 = F.relu(self.p3_2(F.relu(self.p3_1(x))))
+        p4 = F.relu(self.p4_2(self.p4_1(x)))
+        return torch.cat((p1, p2, p3, p4), dim=1)  # 在通道维上连结输出
+
+
+def google_lenet():
+    net = GoogLeNet()
+    print(net)
+
+    X = torch.rand(1, 1, 96, 96)
+    for name, blk in net.named_children():
+        X = blk(X)
+        print(name, 'output shape: ', X.shape)
+    return net
+
+
+class GoogLeNet(nn.Module):
+    '''
+    googLeNet跟VGG一样，在主体卷积部分中使用5个模块（block），每个模块之间使用步幅为2的3×33×3最大池化层来减小输出高宽
+    '''
+
+    def __init__(self):
+        super(GoogLeNet, self).__init__()
+        self.b1 = nn.Sequential(nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3),
+                                nn.ReLU(),
+                                nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+        self.b2 = nn.Sequential(nn.Conv2d(64, 64, kernel_size=1),
+                                nn.Conv2d(64, 192, kernel_size=3, padding=1),
+                                nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+        self.b3 = nn.Sequential(Inception(192, 64, (96, 128), (16, 32), 32),
+                                Inception(256, 128, (128, 192), (32, 96), 64),
+                                nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+
+        self.b4 = nn.Sequential(Inception(480, 192, (96, 208), (16, 48), 64),
+                                Inception(512, 160, (112, 224), (24, 64), 64),
+                                Inception(512, 128, (128, 256), (24, 64), 64),
+                                Inception(512, 112, (144, 288), (32, 64), 64),
+                                Inception(528, 256, (160, 320), (32, 128), 128),
+                                nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
+        self.b5 = nn.Sequential(Inception(832, 256, (160, 320), (32, 128), 128),
+                                Inception(832, 384, (192, 384), (48, 128), 128),
+                                GlobalAvgPool2d())
+
+        self.net = nn.Sequential(self.b1, self.b2, self.b3, self.b4, self.b5,
+                                 FlattenLayer(), nn.Linear(1024, 10))
+
+    def forward(self, x):
+        return self.net(x)
+
+
+def batch_norm1(is_training, X, gamma, beta, moving_mean, moving_var, eps, momentum):
+    # 判断当前模式是训练模式还是预测模式
+    if not is_training:
+        # 如果是在预测模式下，直接使用传入的移动平均所得的均值和方差
+        X_hat = (X - moving_mean) / torch.sqrt(moving_var + eps)
+    else:
+        assert len(X.shape) in (2, 4)
+        if len(X.shape) == 2:
+            # 使用全连接层的情况，计算特征维上的均值和方差
+            mean = X.mean(dim=0)
+            var = ((X - mean) ** 2).mean(dim=0)
+        else:
+            # 使用二维卷积层的情况，计算通道维上（axis=1）的均值和方差。这里我们需要保持
+            # X的形状以便后面可以做广播运算
+            mean = X.mean(dim=0, keepdim=True).mean(dim=2, keepdim=True).mean(dim=3, keepdim=True)
+            var = ((X - mean) ** 2).mean(dim=0, keepdim=True).mean(dim=2, keepdim=True).mean(dim=3, keepdim=True)
+        # 训练模式下用当前的均值和方差做标准化
+        X_hat = (X - mean) / torch.sqrt(var + eps)
+        # 更新移动平均的均值和方差
+        moving_mean = momentum * moving_mean + (1.0 - momentum) * mean
+        moving_var = momentum * moving_var + (1.0 - momentum) * var
+    Y = gamma * X_hat + beta  # 拉伸和偏移
+    return Y, moving_mean, moving_var
+
+def batch_norm(is_training, X, gamma, beta, moving_mean, moving_var, eps, momentum):
+    # 判断当前模式是训练模式还是预测模式
+    if not is_training:
+        # 如果是在预测模式下，直接使用传入的移动平均所得的均值和方差
+        X_hat = (X - moving_mean) / torch.sqrt(moving_var + eps)
+    else:
+        assert len(X.shape) in (2, 4)
+        if len(X.shape) == 2:
+            # 使用全连接层的情况，计算特征维上的均值和方差
+            mean = X.mean(dim=0)
+            var = ((X - mean) ** 2).mean(dim=0)
+        else:
+            # 使用二维卷积层的情况，计算通道维上（axis=1）的均值和方差。这里我们需要保持
+            # X的形状以便后面可以做广播运算
+            mean = X.mean(dim=0, keepdim=True).mean(dim=2, keepdim=True).mean(dim=3, keepdim=True)
+            var = ((X - mean) ** 2).mean(dim=0, keepdim=True).mean(dim=2, keepdim=True).mean(dim=3, keepdim=True)
+        # 训练模式下用当前的均值和方差做标准化
+        X_hat = (X - mean) / torch.sqrt(var + eps)
+        # 更新移动平均的均值和方差
+        moving_mean = momentum * moving_mean + (1.0 - momentum) * mean
+        moving_var = momentum * moving_var + (1.0 - momentum) * var
+    Y = gamma * X_hat + beta  # 拉伸和偏移
+    return Y, moving_mean, moving_var
+
+class BatchNorm(nn.Module):
+    def __init__(self, num_features, num_dims):
+        super(BatchNorm, self).__init__()
+        if num_dims == 2:
+            shape = (1, num_features)
+        else:
+            shape = (1, num_features, 1, 1)
+        # 参与求梯度和迭代的拉伸和偏移参数，分别初始化成0和1
+        self.gamma = nn.Parameter(torch.ones(shape))
+        self.beta = nn.Parameter(torch.zeros(shape))
+        # 不参与求梯度和迭代的变量，全在内存上初始化成0
+        self.moving_mean = torch.zeros(shape)
+        self.moving_var = torch.zeros(shape)
+
+    def forward(self, X):
+        # 如果X不在内存上，将moving_mean和moving_var复制到X所在显存上
+        if self.moving_mean.device != X.device:
+            self.moving_mean = self.moving_mean.to(X.device)
+            self.moving_var = self.moving_var.to(X.device)
+        # 保存更新过的moving_mean和moving_var, Module实例的traning属性默认为true, 调用.eval()后设成false
+        Y, self.moving_mean, self.moving_var = batch_norm(self.training, X, self.gamma, self.beta, self.moving_mean,
+                                                          self.moving_var, eps=1e-5, momentum=0.9)
+        return Y
+
+
+
+class LetNetWithBatchNormal(nn.Module):
+    def __init__(self):
+        super(LetNetWithBatchNormal, self).__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(1, 6, 5), # in_channels, out_channels, kernel_size
+            BatchNorm(6, num_dims=4),
+            nn.Sigmoid(),
+            nn.MaxPool2d(2, 2), # kernel_size, stride
+            nn.Conv2d(6, 16, 5),
+            BatchNorm(16, num_dims=4),
+            nn.Sigmoid(),
+            nn.MaxPool2d(2, 2),
+            FlattenLayer(),
+            nn.Linear(16*4*4, 120),
+            BatchNorm(120, num_dims=2),
+            nn.Sigmoid(),
+            nn.Linear(120, 84),
+            BatchNorm(84, num_dims=2),
+            nn.Sigmoid(),
+            nn.Linear(84, 10)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class LetNetWithTorchBatchNormal(nn.Module):
+    def __init__(self):
+        super(LetNetWithTorchBatchNormal, self).__init__()
+        self.net = nn.Sequential(
+            nn.Conv2d(1, 6, 5),  # in_channels, out_channels, kernel_size
+            nn.BatchNorm2d(6),
+            nn.Sigmoid(),
+            nn.MaxPool2d(2, 2),  # kernel_size, stride
+            nn.Conv2d(6, 16, 5),
+            nn.BatchNorm2d(16),
+            nn.Sigmoid(),
+            nn.MaxPool2d(2, 2),
+            FlattenLayer(),
+            nn.Linear(16 * 4 * 4, 120),
+            nn.BatchNorm1d(120),
+            nn.Sigmoid(),
+            nn.Linear(120, 84),
+            nn.BatchNorm1d(84),
+            nn.Sigmoid(),
+            nn.Linear(84, 10)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
 if __name__ == '__main__':
     # net = LetNet()
     # print(net)
@@ -348,5 +549,5 @@ if __name__ == '__main__':
     # vgg11()
     # vgg11_small()
 
-    nin_net()
-
+    # nin_net()
+    google_lenet()
