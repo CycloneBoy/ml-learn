@@ -7,6 +7,7 @@
 
 import sys
 import time
+import zipfile
 
 from util.constant import DATA_MNIST_DIR
 
@@ -290,7 +291,7 @@ def vgg11_small():
     return net
 
 
-def print_net_shape(net,size=224):
+def print_net_shape(net, size=224):
     X = torch.rand(1, 1, size, size)
     for name, blk in net.named_children():
         X = blk(X)
@@ -369,7 +370,7 @@ def google_lenet():
     net = GoogLeNet()
     print(net)
 
-    print_net_shape(net,size=96)
+    print_net_shape(net, size=96)
     return net
 
 
@@ -602,9 +603,10 @@ def ResNet():
     net.add_module("resnet_block3", resnet_block(128, 256, 2))
     net.add_module("resnet_block4", resnet_block(256, 512, 2))
 
-    net.add_module("global_avg_pool", GlobalAvgPool2d()) # GlobalAvgPool2d的输出: (Batch, 512, 1, 1)
+    net.add_module("global_avg_pool", GlobalAvgPool2d())  # GlobalAvgPool2d的输出: (Batch, 512, 1, 1)
     net.add_module("fc", nn.Sequential(FlattenLayer(), nn.Linear(512, 10)))
     return net
+
 
 def print_resnet():
     net = ResNet18()
@@ -656,7 +658,7 @@ def print_dense_net():
     res = Y.shape
     print(res)
 
-    blk = transition_block(23,10)
+    blk = transition_block(23, 10)
     print(blk(Y).shape)
 
 
@@ -685,6 +687,28 @@ def DenseNet():
     net.add_module("global_avg_pool", GlobalAvgPool2d())  # GlobalAvgPool2d的输出: (Batch, num_channels, 1, 1)
     net.add_module("fc", nn.Sequential(FlattenLayer(), nn.Linear(num_channels, 10)))
     return net
+
+
+# 读入周杰伦的歌词
+def read_jay(length=10000):
+    with zipfile.ZipFile('../../data/test/jaychou_lyrics.txt.zip') as zin:
+        with zin.open('jaychou_lyrics.txt') as f:
+            corpus_chars = f.read().decode('utf-8')
+            corpus_chars = corpus_chars.replace('\n', " ").replace("\r", " ")
+    return corpus_chars, corpus_chars[:length]
+
+
+def load_data_jay_lyrics():
+    all_chars, corpus_chars = read_jay()
+    idx_to_char = list(set(corpus_chars))
+    char_to_idx = dict([(char, i) for i, char in enumerate(idx_to_char)])
+    vocab_size = len(char_to_idx)
+
+    corpus_indices = [char_to_idx[char] for char in corpus_chars]
+    sample = corpus_indices[:20]
+    # print('chars:', ''.join([idx_to_char[idx] for idx in sample]))
+    # print('indices:', sample)
+    return corpus_indices, char_to_idx, idx_to_char, vocab_size
 
 
 if __name__ == '__main__':
