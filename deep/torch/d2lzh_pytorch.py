@@ -13,8 +13,6 @@ from util.constant import DATA_MNIST_DIR
 
 sys.path.append("..")
 
-import numpy as np
-
 import torch
 from torch import nn
 import torch.optim
@@ -783,34 +781,32 @@ def to_onehot(X, n_class):
     return [one_hot(X[:, i], n_class) for i in range(X.shape[1])]
 
 
-
-
-def grad_clipping(params,theta,device):
-    norm = torch.tensor([0.0],device=device)
+def grad_clipping(params, theta, device):
+    norm = torch.tensor([0.0], device=device)
     for param in params:
         norm += (param.grad.data ** 2).sum()
     norm = norm.sqrt().item()
     if norm > theta:
         for param in params:
-            param.grad.data *= (theta/norm)
+            param.grad.data *= (theta / norm)
 
-def predict_rnn(prefix,num_chars,rnn,params,init_rnn_state,
-                num_hiddens,vocab_size,device,idx_to_char,char_to_idx):
-    state = init_rnn_state(1,num_hiddens,device)
+
+def predict_rnn(prefix, num_chars, rnn, params, init_rnn_state,
+                num_hiddens, vocab_size, device, idx_to_char, char_to_idx):
+    state = init_rnn_state(1, num_hiddens, device)
     output = [char_to_idx[prefix[0]]]
 
     for t in range(num_chars + len(prefix) - 1):
         # 将上一时间步的输出作为当前时间步的输入
-        X = to_onehot(torch.tensor([[output[-1]]],device=device),vocab_size)
+        X = to_onehot(torch.tensor([[output[-1]]], device=device), vocab_size)
         # 计算输出和更新隐藏状态
-        (Y,state) = rnn(X,state,params)
+        (Y, state) = rnn(X, state, params)
         # 下一个时间步的输入是prefix里的字符或者当前的最佳预测字符
-        if t < len(prefix) -1 :
-            output.append(char_to_idx[prefix[t+1]])
+        if t < len(prefix) - 1:
+            output.append(char_to_idx[prefix[t + 1]])
         else:
             output.append(int(Y[0].argmax(dim=1).item()))
     return ''.join([idx_to_char[i] for i in output])
-
 
 
 # 本函数已保存在d2lzh_pytorch包中方便以后使用
@@ -835,8 +831,8 @@ def train_and_predict_rnn(rnn, get_params, init_rnn_state, num_hiddens,
             if is_random_iter:  # 如使用随机采样，在每个小批量更新前初始化隐藏状态
                 state = init_rnn_state(batch_size, num_hiddens, device)
             else:
-            # 否则需要使用detach函数从计算图分离隐藏状态, 这是为了
-            # 使模型参数的梯度计算只依赖一次迭代读取的小批量序列(防止梯度计算开销太大)
+                # 否则需要使用detach函数从计算图分离隐藏状态, 这是为了
+                # 使模型参数的梯度计算只依赖一次迭代读取的小批量序列(防止梯度计算开销太大)
                 for s in state:
                     s.detach_()
 
@@ -867,52 +863,51 @@ def train_and_predict_rnn(rnn, get_params, init_rnn_state, num_hiddens,
                 epoch + 1, math.exp(l_sum / n), time.time() - start))
             for prefix in prefixes:
                 print(' -', predict_rnn(prefix, pred_len, rnn, params, init_rnn_state,
-                    num_hiddens, vocab_size, device, idx_to_char, char_to_idx))
+                                        num_hiddens, vocab_size, device, idx_to_char, char_to_idx))
 
 
 def predict_rnn_pytorch(prefix, num_chars, model, vocab_size, device, idx_to_char,
-                      char_to_idx):
+                        char_to_idx):
     state = None
-    output = [char_to_idx[prefix[0]]] # output会记录prefix加上输出
-    for t in range(num_chars + len(prefix) -1 ):
-        X = torch.tensor([output[-1]],device=device).view(1,1)
+    output = [char_to_idx[prefix[0]]]  # output会记录prefix加上输出
+    for t in range(num_chars + len(prefix) - 1):
+        X = torch.tensor([output[-1]], device=device).view(1, 1)
         if state is not None:
-            if isinstance(state,tuple): # LSTM, state:(h, c)
-                state = (state[0].to(device),state[1].to(device))
+            if isinstance(state, tuple):  # LSTM, state:(h, c)
+                state = (state[0].to(device), state[1].to(device))
             else:
                 state = state.to(device)
 
-        (Y,state) = model(X,state)
+        (Y, state) = model(X, state)
         if t < len(prefix) - 1:
-            output.append(char_to_idx[prefix[t+1]])
+            output.append(char_to_idx[prefix[t + 1]])
         else:
             output.append(int(Y.argmax(dim=1).item()))
     return ''.join([idx_to_char[i] for i in output])
 
 
-
 # 本函数已保存在d2lzh_pytorch包中方便以后使用
 def train_and_predict_rnn_pytorch(model, num_hiddens, vocab_size, device,
-                                corpus_indices, idx_to_char, char_to_idx,
-                                num_epochs, num_steps, lr, clipping_theta,
-                                batch_size, pred_period, pred_len, prefixes):
+                                  corpus_indices, idx_to_char, char_to_idx,
+                                  num_epochs, num_steps, lr, clipping_theta,
+                                  batch_size, pred_period, pred_len, prefixes):
     loss = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     model.to(device)
     state = None
     for epoch in range(num_epochs):
         l_sum, n, start = 0.0, 0, time.time()
-        data_iter = data_iter_consecutive(corpus_indices, batch_size, num_steps, device) # 相邻采样
+        data_iter = data_iter_consecutive(corpus_indices, batch_size, num_steps, device)  # 相邻采样
         for X, Y in data_iter:
             if state is not None:
                 # 使用detach函数从计算图分离隐藏状态, 这是为了
                 # 使模型参数的梯度计算只依赖一次迭代读取的小批量序列(防止梯度计算开销太大)
-                if isinstance (state, tuple): # LSTM, state:(h, c)
+                if isinstance(state, tuple):  # LSTM, state:(h, c)
                     state = (state[0].detach(), state[1].detach())
                 else:
                     state = state.detach()
 
-            (output, state) = model(X, state) # output: 形状为(num_steps * batch_size, vocab_size)
+            (output, state) = model(X, state)  # output: 形状为(num_steps * batch_size, vocab_size)
 
             # Y的形状是(batch_size, num_steps)，转置后再变成长度为
             # batch * num_steps 的向量，这样跟输出的行一一对应
@@ -938,6 +933,26 @@ def train_and_predict_rnn_pytorch(model, num_hiddens, vocab_size, device,
                 print(' -', predict_rnn_pytorch(
                     prefix, pred_len, model, vocab_size, device, idx_to_char,
                     char_to_idx))
+
+
+class RNNModel(nn.Module):
+    def __init__(self, rnn_layer, vocab_size):
+        super(RNNModel, self).__init__()
+        self.rnn = rnn_layer
+        self.hidden_size = rnn_layer.hidden_size * (2 if rnn_layer.bidirectional else 1)
+        self.vocab_size = vocab_size
+        self.dense = nn.Linear(self.hidden_size, vocab_size)
+        self.state = None
+
+    def forward(self, inputs, state):  # inputs: (batch, seq_len)
+        # 获取one-hot向量表示
+        X = to_onehot(inputs, self.vocab_size)  # X是个list
+        Y, self.state = self.rnn(torch.stack(X), state)
+        # 全连接层会首先将Y的形状变成(num_steps * batch_size, num_hiddens)，它的输出
+        # 形状为(num_steps * batch_size, vocab_size)
+        output = self.dense(Y.view(-1, Y.shape[-1]))
+        return output, self.state
+
 
 if __name__ == '__main__':
     # net = LetNet()
