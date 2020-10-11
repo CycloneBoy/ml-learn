@@ -12,3 +12,5 @@ CIFAR10_CLASSES = ('plane', 'car', 'bird', 'cat',
 
 DATA_MNIST_DIR = '~/workspace/data/mnist'
 MODEL_MNIST_DIR = '{}/model'.format(DATA_MNIST_DIR)
+
+DATA_CACHE_DIR = '~/workspace/data/nlp'
