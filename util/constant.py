@@ -13,4 +13,11 @@ CIFAR10_CLASSES = ('plane', 'car', 'bird', 'cat',
 DATA_MNIST_DIR = '~/workspace/data/mnist'
 MODEL_MNIST_DIR = '{}/model'.format(DATA_MNIST_DIR)
 
-DATA_CACHE_DIR = '~/workspace/data/nlp'
+DATA_CACHE_DIR = '/home/sl/workspace/data/nlp'
+
+GLOVE_DATA_DIR = '/home/sl/workspace/data/nlp/glove/glove.6B'
+
+# aclImdb_v1.tar.gz
+IMDB_DATA_DIR = '/home/sl/workspace/data/nlp/aclImdb'
+
+
