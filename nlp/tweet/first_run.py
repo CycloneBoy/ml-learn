@@ -88,7 +88,25 @@ submission_df_1 = pd.DataFrame({
 submission_df_1.head()
 print_text(submission_df_1)
 
-submission_df_1.to_csv('submission_1.csv', index=False)
+submission_df_1.to_csv("{}/{}".format(data_dir, 'submission_1.csv'), index=False)
+
+
+police_filename = "{}/{}".format(data_dir, 'police_clean.csv')
+police_data = pd.read_csv(police_filename)
+police_data_id = police_data["IR_No"]
+police_data_line = police_data["Main_Narrative"]
+
+
+police_data_line_pred = model.predict(police_data_line)
+
+police_data_df_1 = pd.DataFrame({
+    "IR_No": police_data_id,
+    "target(1:bad)": police_data_line_pred})
+
+
+print_text(police_data_df_1)
+police_data_df_1.to_csv("{}/{}".format(data_dir, 'police_data_df_1.csv'), index=False)
+
 
 if __name__ == '__main__':
     pass
