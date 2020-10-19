@@ -20,4 +20,7 @@ GLOVE_DATA_DIR = '/home/sl/workspace/data/nlp/glove/glove.6B'
 # aclImdb_v1.tar.gz
 IMDB_DATA_DIR = '/home/sl/workspace/data/nlp/aclImdb'
 
+# NLP模型保存
+MODEL_NLP_DIR = '/home/sl/workspace/data/nlp/model'
+
 

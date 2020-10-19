@@ -10,7 +10,7 @@ import torchvision
 
 import torchtext.vocab as vocab
 
-from util.constant import DATA_CACHE_DIR, GLOVE_DATA_DIR
+from util.constant import DATA_CACHE_DIR, GLOVE_DATA_DIR, MODEL_NLP_DIR
 
 import time
 import os
@@ -78,6 +78,11 @@ def get_analogy(token_a, token_b, token_c, embed):
     x = vecs[1] - vecs[0] + vecs[2]
     topk, cos = knn(embed.vectors, x, 1)
     return embed.itos[topk[0]]
+
+def save_model(net,filename="model1.pth",datadir=MODEL_NLP_DIR):
+    save_model = "{}/{}".format(datadir, filename)
+    print("保存模型:",save_model)
+    torch.save(net, save_model)
 
 if __name__ == '__main__':
     # mkdir("/home/sl/workspace/data/test")
