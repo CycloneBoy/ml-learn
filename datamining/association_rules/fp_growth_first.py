@@ -367,50 +367,41 @@ def find_frequent_itemsets(transactions, minimum_support, include_support=False)
 
 
 
+# 移除一个元素
+def remove_str(set, str):
+    tempSet = []
+    for elem in set:
+        if(elem != str):
+            tempSet.append(elem)
+    tempFrozenSet = frozenset(tempSet)
+    return tempFrozenSet
 
-def rulesFromConseq(freqSet, H, supportData, brl, minConf=0.7):
-    # H[0]是 freqSet的元素组合的第一个元素，并且H中所有元素的长度都一样，长度由aprioriGen(H, m + 1) 这里的m + 1
-    # 来控制该函数递归时，H[0] 的长度从 1 开始增长 1 2 3 ...
-    # 假设 freqSet = frozenset([2, 3, 5]), H = [frozenset([2]), frozenset([3]), frozenset([5])]
-    # 那么 m = len(H[0]) 的递归的值依次为 1 2
-    # 在 m = 2 时, 跳出该递归。假设再递归一次，那么 H[0] = frozenset([2, 3, 5])，freqSet = frozenset([2, 3, 5]) ，没必要再计算 freqSet 与 H[0] 的关联规则了。
 
-    m = len(H[0])
-    if (len(freqSet) > (m + 1)):
-        # 生成 m+1 个长度的所有可能的 H 中的组合，假设 H = [frozenset([2]), frozenset([3]), frozenset([5])]
-        # 第一次递归调用时生成 [frozenset([2, 3]), frozenset([2, 5]), frozenset([3, 5])]
-        # 第二次 。。。没有第二次，递归条件判断时已经退出了
-        Hmp1 = aprioriGen(H, m + 1)
-        # 返回可信度大于最小可信度的集合
-        Hmp1 = calc_conf(freqSet, Hmp1, supportData, brl, minConf)
-        # print ('Hmp1=', Hmp1)
-        # print ('len(Hmp1)=', len(Hmp1), 'len(freqSet)=', len(freqSet))
-        # 计算可信度后，还有数据大于最小可信度的话，那么继续递归调用，否则跳出递归
-        if (len(Hmp1) > 1):
-            # print '----------------------', Hmp1
-            # print len(freqSet),  len(Hmp1[0]) + 1
-            rulesFromConseq(freqSet, Hmp1, supportData, brl, minConf)
 
-def generateRules(L, supportData, minConf=0.7):
-    '''生成关联规则
-    :param L:   频繁项集列表
-    :param supportData:  频繁项集支持度的字典
-    :param minConf:  最小置信度
-    :return:  可信度规则列表（关于 (A->B+置信度) 3个字段的组合）
-    '''
-    bigRuleList = []
-    for i in range(1, len(L)):
-         # 获取频繁项集中每个组合的所有元素
-        for freqSet in L[i]:
-            # 组合总的元素并遍历子元素，转化为 frozenset集合存放到 list 列表中
-            H1 = [frozenset([item]) for item in freqSet]
-            # print(H1)
-            # 2 个的组合else, 2 个以上的组合 if
-            if (i > 1):
-                rulesFromConseq(freqSet, H1, supportData, bigRuleList, minConf)
-            else:
-                calc_conf(freqSet, H1, supportData, bigRuleList, minConf)
-    return bigRuleList
+# 获取关联规则
+def rules_generator(frequentPatterns, minConf, rules):
+    for frequentset in frequentPatterns:
+        if(len(frequentset) > 1):
+            get_rules(frequentset, frequentset, rules, frequentPatterns, minConf)
+
+total_rules_size = 0
+# 获取关联规则
+def get_rules(frequentset, currentset, rules, frequentPatterns, minConf):
+    for frequentElem in currentset:
+        subSet = remove_str(currentset, frequentElem)
+        confidence = frequentPatterns[frequentset] / frequentPatterns[subSet]
+        if (confidence >= minConf):
+            flag = False
+            for rule in rules:
+                if(rule[0] == subSet and rule[1] == frequentset - subSet):
+                    flag = True
+            if(flag == False):
+                rules.append((subSet, frequentset - subSet, confidence))
+
+            if len(subSet) >= 2 and len(rules) < 100:
+                get_rules(frequentset, subSet, rules, frequentPatterns, minConf)
+
+
 
 if __name__ == '__main__':
 
