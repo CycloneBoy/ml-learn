@@ -68,9 +68,9 @@ print(net)
 
 glove_vocab = get_glove()
 
-net.embedding.weight.data.copy_(
+net.embedding.weight.response.copy_(
     d2l.load_pretrained_embedding(vocab.itos, glove_vocab))
-net.constant_embedding.weight.data.copy_(
+net.constant_embedding.weight.response.copy_(
     d2l.load_pretrained_embedding(vocab.itos, glove_vocab))
 net.constant_embedding.weight.requires_grad = False  # 直接加载预训练好的, 所以不需要更新它
 

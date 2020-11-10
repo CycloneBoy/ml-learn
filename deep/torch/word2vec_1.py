@@ -252,7 +252,7 @@ def train(net, lr, num_epochs):
 
 
 def get_similar_tokens(query_token, k, embed):
-    W = embed.weight.data
+    W = embed.weight.response
     x = W[token_to_idx[query_token]]
     # 添加的1e-9是为了数值稳定性
     cos = torch.matmul(W, x) / (torch.sum(W * W, dim=1) * torch.sum(x * x) + 1e-9).sqrt()

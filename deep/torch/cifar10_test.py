@@ -58,7 +58,7 @@ with torch.no_grad():
         images = images.to(device)
         labels = labels.to(device)
         preds = net(Variable(images))
-        value, predicted = torch.max(preds.data, 1)
+        value, predicted = torch.max(preds.response, 1)
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
 
@@ -73,7 +73,7 @@ with torch.no_grad():
         images = images.to(device)
         labels = labels.to(device)
         preds = net(Variable(images))
-        _, predicted = torch.max(preds.data, 1)
+        _, predicted = torch.max(preds.response, 1)
         c = (predicted == labels).squeeze()
         for i in range(batch_size):
             label = labels[i]
