@@ -7,8 +7,9 @@
 import json
 import os
 import urllib3
+from basis.utils.multi_thread_download import multi_download, stop_treads,log,setImageDir
 
-filename = "data.json"
+filename = "course/data2.json"
 http= urllib3.PoolManager()
 
 def read_data(filename):
@@ -44,13 +45,45 @@ def download(url,file_name,file_path='/home/sl/workspace/data/test'):
     with open(save_path, "wb") as code:
         code.write(r.data)
 
+# 下载文件
+def download_v2(url_list,file_path='/home/sl/workspace/data/test'):
+    threads,starttime = multi_download(url_list,imageDir="video")
+    stop_treads(threads,starttime,url_list)
+
+def rename_file(file_path,name_dic):
+    fileList = os.listdir(file_path)
+    for name in fileList:
+        old_name = os.path.join(file_path,name)
+        print(old_name)
+        if name in name_dic:
+            new_name = os.path.join(file_path,name_dic[name])
+            os.rename(old_name,new_name)
+            log.info("文件重命名:{} 为:{} ".format(old_name,new_name))
+
+
+def get_file_name(file_url):
+    file = str(file_url).split('/')
+    name = file[len(file) - 1]
+    return name
+
+
+
 if __name__ == '__main__':
     video_list =read_data(filename)
 
+    url_list = []
+    name_dic = {}
     for video in video_list:
-        print(video['url'])
-        # download(video['url'],video['file_name'])
+        file_url = video['url']
+        file_name = video['file_name']
+        name = get_file_name(file_url)
+        print("{} -> {}".format(file_name,file_url))
+        url_list.append(file_url)
+        name_dic[name] = file_name
 
+    download_v2(url_list)
+    file_path = os.path.join(setImageDir,'video')
+    rename_file(file_path,name_dic)
 
 
 
