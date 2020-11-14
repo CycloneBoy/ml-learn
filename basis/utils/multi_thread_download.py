@@ -45,7 +45,15 @@ class myThread (threading.Thread):
                 fileurl = data
                 sp_filename = fileurl.split("/")
                 filename =  self.imageDir + "/" + sp_filename[len(sp_filename) - 1]
-                urllib.request.urlretrieve(data, filename)
+                try:
+                    log.info("开始下载文件: {} -> {}".format(data,filename))
+
+                    urllib.request.urlretrieve(data, filename)
+                except Exception as e:
+                    print(e)
+                    log.info("下载文件出错: {} -> {}".format(data,filename))
+                    log.error(e)
+
                 self.endtime = time.time()
                 usetime = self.endtime - self.starttime
                 log.info("线程 %s 下载完成一张图片,耗时：%s： %s" % (threadName,usetime, data))

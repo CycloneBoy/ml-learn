@@ -104,7 +104,7 @@ def download_file_and_rename(url_list, name_dic=None,file_path="/home/sl/workspa
     download_v2(url_list,file_path=file_path,thread_size=thread_size)
 
     if name_dic != None:
-        file_path = os.path.join(setImageDir, 'video')
+    # file_path = os.path.join(setImageDir, 'video')
         rename_file(file_path, name_dic)
 
 
@@ -138,12 +138,15 @@ def get_video_url_list(html, title_name_list):
     log.info("video url list length:{}".format(len(video_list)))
     for index, item in enumerate(video_list):
         # 从 style 中获取视频的url
-        url = item[23:-13]
+        # url = item[23:-13]
+        url = item[item.index('http'):item.index('.mp4') + len('.mp4')]
+        log.info("原始链接:-> {} -> {}".format(index,url))
+
         url = url.replace('thumbnail', 'transcoding')
         url_list.append(url)
         name = get_file_name(url)
         name_dic[name] = title_name_list[index]
-        # log.info(url)
+        log.info("目的链接:-> {} -> {}".format(index, url))
     return url_list, name_dic
 
 
@@ -158,7 +161,7 @@ def download_video_from_html(filename):
 
     # log.info(url_list)
     # log.info(name_dic)
-    download_file_and_rename(url_list[51:52], name_dic)
+    download_file_and_rename(url_list, name_dic,file_path="/home/sl/workspace/python/mafengwo/imagehome/video3")
 
 
 if __name__ == '__main__':

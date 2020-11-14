@@ -9,6 +9,7 @@ import sys
 import codecs
 import shutil
 import urllib
+import re
 
 from scrapy import Selector
 from scrapy.http import HtmlResponse
@@ -93,4 +94,12 @@ if __name__ == '__main__':
     # url = "http://www.mafengwo.cn"
     # url = "https://www.google.com/"
     # html = getTravelNote(url=url)
-    test_chrome2(url)
+    # test_chrome2(url)
+
+    url_image = 'background-image: url("https://statics0.umustatic.cn//videoweike/teacher/weike/jK1W627e/thumbnail/1581917553.4833.16784.6183267.mp4_00804.jpg");'
+
+    print(url_image.index('url('))
+    print(url_image.index('.mp4'))
+    parse_url = url_image[url_image.index('http'):url_image.index('.mp4')+ 4]
+    # parse_url = re.findall(r'^(http|https)://.*',url_image)
+    print(parse_url)
