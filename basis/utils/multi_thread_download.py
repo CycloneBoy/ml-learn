@@ -56,28 +56,28 @@ class myThread (threading.Thread):
     def stop(self):
         self.flag = 1
 
-
-def multi_download(imageList,imageDir="image",threadSize = 10):
+# 多线程下载文件
+def multi_download(image_list, image_dir="/home/sl/workspace/python/mafengwo/imagehome/image", thread_size = 10):
     starttime = time.time()
     log.info("开始下载：{}".format(starttime))
 
-    imageDir = os.path.join(setImageDir, str(imageDir).replace(" ","").replace("/",""))
-    if os.path.exists(imageDir):
-        log.info("dir %s is existed!" % imageDir)
+    # imageDir = os.path.join(setImageDir, str(imageDir).replace(" ","").replace("/",""))
+    if os.path.exists(image_dir):
+        log.info("dir %s is existed!" % image_dir)
     else:
-        os.mkdir(imageDir)
+        os.mkdir(image_dir)
 
     threads = []
 
     # 创建新线程
-    for i in range(1, threadSize + 1):
-        thread = myThread(workQueue,imageDir=imageDir)
+    for i in range(1, thread_size + 1):
+        thread = myThread(workQueue, imageDir=image_dir)
         thread.start()
         threads.append(thread)
 
     # 填充队列
     queueLock.acquire()
-    for image in imageList:
+    for image in image_list:
         workQueue.put(image)
     queueLock.release()
 
@@ -111,7 +111,7 @@ if __name__ == '__main__':
         "http://n1-q.mafengwo.net/s13/M00/F8/CF/wKgEaVx42qKAO1P7AAZYwfgO2kw13.jpeg"
     ]
 
-    threads,starttime = multi_download(imageList,imageDir="image3")
+    threads,starttime = multi_download(imageList, image_dir="/home/sl/workspace/python/mafengwo/imagehome/image4")
     exitFlag=1
     stop_treads(threads,starttime,imageList)
 

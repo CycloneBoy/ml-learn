@@ -789,11 +789,11 @@ def to_onehot(X, n_class):
 def grad_clipping(params, theta, device):
     norm = torch.tensor([0.0], device=device)
     for param in params:
-        norm += (param.grad.response ** 2).sum()
+        norm += (param.grad.url ** 2).sum()
     norm = norm.sqrt().item()
     if norm > theta:
         for param in params:
-            param.grad.response *= (theta / norm)
+            param.grad.url *= (theta / norm)
 
 
 def predict_rnn(prefix, num_chars, rnn, params, init_rnn_state,
@@ -855,7 +855,7 @@ def train_and_predict_rnn(rnn, get_params, init_rnn_state, num_hiddens,
             # 梯度清0
             if params[0].grad is not None:
                 for param in params:
-                    param.grad.response.zero_()
+                    param.grad.url.zero_()
             l.backward()
             grad_clipping(params, clipping_theta, device)  # 裁剪梯度
             # todo: 导入SGD 算法进行优化
