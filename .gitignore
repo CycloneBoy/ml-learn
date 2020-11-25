@@ -51,3 +51,8 @@
 将删除 datamining/association_rules/type_rules_002.txt
 将删除 deep/torch/~/
 *.html
+*.json
+*.txt
+*.log
+*.png
+
