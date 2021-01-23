@@ -55,4 +55,8 @@
 *.txt
 *.log
 *.png
+*.xls
+*.xlsx
+*.jpg
+*.ico
 
