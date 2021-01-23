@@ -24,3 +24,5 @@ IMDB_DATA_DIR = '/home/sl/workspace/data/nlp/aclImdb'
 MODEL_NLP_DIR = '/home/sl/workspace/data/nlp/model'
 
 
+# opencv 图片地址
+OPENCV_IMAGE_DIR = '/home/sl/data'
