@@ -196,7 +196,13 @@ def train_ch3(net,train_iter,test_iter,loss,num_epochs,batch_size,params=None,lr
         print('epoch %d, loss %.4f, train acc %.3f , test acc %.3f, time: %.3f sec'
               %(epoch +1,train_l_sum / n ,train_acc_sum / n ,test_acc,(time.time() -start)))
 
-
+def xyplot(x_vals, y_vals, name):
+    """ 显示 x和 y  """
+    set_figsize(figsize=(5, 2.5))
+    plt.plot(x_vals.detach().numpy(), y_vals.detach().numpy())
+    plt.xlabel('x')
+    plt.ylabel(name + '(x)')
+    plt.show()
 
 def corr2d(X, K):
     h, w = K.shape
