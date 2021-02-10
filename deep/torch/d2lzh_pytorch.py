@@ -204,6 +204,11 @@ def xyplot(x_vals, y_vals, name):
     plt.ylabel(name + '(x)')
     plt.show()
 
+
+def relu(X):
+    """ 实现relu """
+    return  torch.max(input=X,other=torch.tensor(0.0))
+
 def corr2d(X, K):
     h, w = K.shape
     Y = torch.zeros((X.shape[0] - h + 1, X.shape[1] - w + 1))
