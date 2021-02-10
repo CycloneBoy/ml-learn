@@ -196,7 +196,7 @@ def train_ch3(net,train_iter,test_iter,loss,num_epochs,batch_size,params=None,lr
         print('epoch %d, loss %.4f, train acc %.3f , test acc %.3f, time: %.3f sec'
               %(epoch +1,train_l_sum / n ,train_acc_sum / n ,test_acc,(time.time() -start)))
 
-            
+
 
 def corr2d(X, K):
     h, w = K.shape
@@ -396,10 +396,11 @@ class AlexNet(nn.Module):
 
 
 class FlattenLayer(nn.Module):
+    """ 转换x的形状 """
     def __init__(self):
         super(FlattenLayer, self).__init__()
 
-    def forward(self, x):
+    def forward(self, x): # x shape: (batch, *, *, ...)
         return x.view(x.shape[0], -1)
 
 
