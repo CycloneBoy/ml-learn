@@ -1,2 +1,19 @@
 
+# 数据目录
+data
+*.json
+*.html
+*.xls
+*.xlsx
+
+# 图片
+*.png
+*.jpg
+*.jpeg
+*.ico
+
+# 日志
+*.log
+
+*.txt
 

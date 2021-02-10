@@ -11,6 +11,11 @@ import sys
 import time
 import zipfile
 
+from IPython import display
+from matplotlib import pyplot as plt
+import numpy as np
+import random
+
 import torchtext.vocab as Vocab
 from tqdm import tqdm
 
@@ -30,6 +35,50 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from util.logger_utils import get_log
 
 log = get_log("{}.log".format("d2lzh_pytorch"))
+
+
+###############################################
+# 第三章函数
+#
+###############################################
+
+def use_svg_display():
+    """ 用矢量图显示 """
+    display.set_matplotlib_formats('svg')
+
+
+def set_figsize(figsize=(3.5, 2.5)):
+    """ 设置图的大小 """
+    use_svg_display()
+    plt.rcParams['figure.figsize'] = figsize
+
+
+def data_iter(batch_size, features, labels):
+    """ 读取小批量数据 """
+    num_examples = len(features)
+    indices = list(range(num_examples))
+    random.shuffle(indices)
+    for i in range(0, num_examples, batch_size):
+        # 最后一个可能不足一个batch
+        j = torch.LongTensor(indices[i:min(i + batch_size, num_examples)])
+        yield features.index_select(0, j), labels.index_select(0, j)
+
+
+def linreg(X, w, b):
+    """ 线性回归模型 """
+    return torch.mm(X, w) + b
+
+
+def squared_loss(y_hat, y):
+    """ MSELoss """
+    # 注意这里返回的是向量, 另外, pytorch里的MSELoss并没有除以 2
+    return (y_hat - y.view(y_hat.size())) ** 2 / 2
+
+
+def sgd(params, lr, batch_size):
+    """ 小批量样本的梯度和 """
+    for param in params:
+        param.data -= lr * param.grad / batch_size
 
 
 def corr2d(X, K):
@@ -1135,5 +1184,9 @@ if __name__ == '__main__':
     # print_dense_net()
     # print_net_shape(ResNet())
     # print_net_shape(DenseNet(),size=96)
-    test_seq()
-    test_seq２()
+    # test_seq()
+    # test_seq２()
+
+    set_figsize()
+    plt.scatter([1, 2, 3], [1, 2, 2], 1)
+    plt.show()

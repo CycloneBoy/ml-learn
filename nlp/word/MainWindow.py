@@ -63,6 +63,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         openfile_name = QFileDialog.getOpenFileName(self, '选择文件', '', 'Excel files(*.xlsx , *.xls)')
         self.path_openfile_name = openfile_name[0]
         self.show_table()
+        self.process_data()
 
     # 显示表格
     def show_table(self):
@@ -118,9 +119,13 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             self.centralWidget.show()
 
-    def show_table_list(self,show_data,header):
-        colunms = len(show_data[0])
+    def show_table_list(self,show_data,header,align_right=True):
         rows = len(show_data)
+        if rows == 0:
+            colunms = 0
+        else:
+            colunms = len(show_data[0])
+
         self.tableWidget_bag_word.setColumnCount(colunms)
         self.tableWidget_bag_word.setRowCount(rows)
         # self.tableWidget_bag_word.setHorizontalHeaderLabels(header)
@@ -128,7 +133,10 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             for j in range(colunms):
                 input_table_items = str(show_data[i][j])
                 newItem = QTableWidgetItem(input_table_items)
-                newItem.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                if align_right:
+                    newItem.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                else:
+                    newItem.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
                 self.tableWidget_bag_word.setItem(i, j, newItem)
 
     def process_data(self):
@@ -142,7 +150,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             res_list.sort(key=lambda x:len(x),reverse=True)
             res_list = self.remove_same_prefix(res_list)
 
-            res_data.append(res_list)
+
+            # 对数据进行右排序
+            res_sort_list = self.sort_list_right(res_list)
+
+
+            res_data.append(res_sort_list)
 
         # res_data_row = self.show_row_column(res_data)
 
@@ -151,7 +164,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         res_data_2 = []
         for data in res_data:
             res_data2 = self.remove_input(data, remove_input_str)
-            res_data_2.append(res_data2)
+
+            # 添加取词(相同后缀的词)
+            print("进行取词之前大小:{}".format(len(data)))
+            res_list = self.remove_same_suffix(res_data2,remove_input_str)
+            print("进行取词之后大小:{}".format(len(res_list)))
+            res_data_2.append(res_list)
 
         res_data_row = np.transpose(res_data_2)
         # self.data = res_data_row
@@ -219,8 +237,61 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         book.save(openfile_excel)
         pass
 
+    # sort reverse
+    def sort_list_right(self,data):
+        sort_list = []
+        # 反转字符串
+        for item in data:
+            sort_list.append(''.join(reversed(item)))
+
+        # 排序
+        sort_list.sort(key=lambda x: str(x).lower())
+
+        res_list = []
+        # 反转字符串
+        for item in sort_list:
+            res_list.append(''.join(reversed(item)))
+
+        return res_list
+
+    # 显示字符串列表
+    def align_list(self,data, show_right=False):
+        sort_list = []
+        if show_right:
+            sort_list = self.show_list_right(data)
+        else:
+            sort_list = data
+        return sort_list
 
 
+    # 去除相同后缀的
+    def remove_same_suffix(self,data, remove_data):
+        remove_set = self.get_suffix_list(remove_data)
+        res_list = list(data)
+        res = []
+        for word in res_list:
+            add_flag = True
+            split_list = str(word).split()
+            word = " ".join(split_list)
+            for remove_item in remove_set:
+                if str(word).strip().find(remove_item) != -1:
+                    add_flag = False
+                    break
+            if add_flag:
+                res.append(word)
+        return res
+
+    # 生成后缀列表
+    def get_suffix_list(self,data):
+        res = []
+        for item in data:
+            split_list = str(item).split()
+            # print(split_list)
+            while len(split_list) >= 1:
+                res.append(" ".join(split_list))
+                split_list = split_list[1:]
+
+        return set(res)
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     w = MainWindow()
