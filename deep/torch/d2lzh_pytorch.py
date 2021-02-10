@@ -209,6 +209,51 @@ def relu(X):
     """ 实现relu """
     return  torch.max(input=X,other=torch.tensor(0.0))
 
+
+def semilogy(x_vals, y_vals, x_label,y_label,x2_vals=None,y2_vals=None,
+             legend=None,figsize=(3.5,2.5)):
+    """ 显示 x和 y   y 轴使用了对数尺度。"""
+    set_figsize(figsize)
+    plt.semilogy(x_vals,y_vals)
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    if x2_vals and y2_vals:
+        plt.semilogy(x2_vals, y2_vals,linestyle=':')
+        plt.legend(legend)
+    plt.show()
+
+
+def fit_and_plot(train_features,test_features,train_labels,test_labels,num_epochs=100,loss=torch.nn.MSELoss()):
+    """ 多项式函数拟合也使用平方损失函数 """
+    net = torch.nn.Linear(train_features.shape[-1],1)
+
+    batch_size = min(10,train_labels.shape[0])
+    dataset = torch.utils.data.TensorDataset(train_features,train_labels)
+    train_iter = torch.utils.data.DataLoader(dataset,batch_size,shuffle=True)
+
+    optimizer = torch.optim.SGD(net.parameters(),lr=0.01)
+    train_ls,test_ls= [],[]
+
+    start = time.time()
+    for epoch in range(num_epochs):
+        for X,y in train_iter:
+            l = loss(net(X),y.view(-1,1))
+            optimizer.zero_grad()
+            l.backward()
+            optimizer.step()
+
+        train_labels = train_labels.view(-1,1)
+        test_labels = test_labels.view(-1,1)
+        train_ls.append(loss(net(train_features),train_labels).item())
+        test_ls.append(loss(net(test_features),test_labels).item())
+    print('final epoch  train loss %f, test loss %f, time: %.3f sec'
+          % ( train_ls[-1],test_ls[-1],(time.time() - start)))
+
+    semilogy(range(1,num_epochs+1),train_ls,'epochs','loss',
+             range(1,num_epochs+1),test_ls,['train','test'])
+
+    print('weight:' ,net.weight.data,'\nbias' ,net.bias.data)
+
 def corr2d(X, K):
     h, w = K.shape
     Y = torch.zeros((X.shape[0] - h + 1, X.shape[1] - w + 1))
