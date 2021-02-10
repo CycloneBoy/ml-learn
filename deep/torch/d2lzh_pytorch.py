@@ -12,6 +12,7 @@ import time
 import zipfile
 
 from IPython import display
+import matplotlib
 from matplotlib import pyplot as plt
 import numpy as np
 import random
@@ -19,7 +20,7 @@ import random
 import torchtext.vocab as Vocab
 from tqdm import tqdm
 
-from util.constant import DATA_MNIST_DIR, IMDB_DATA_DIR
+from util.constant import DATA_MNIST_DIR, IMDB_DATA_DIR, DATA_FASHION_MNIST_DIR
 
 sys.path.append("..")
 
@@ -35,6 +36,10 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 from util.logger_utils import get_log
 
 log = get_log("{}.log".format("d2lzh_pytorch"))
+
+# 设置字体为楷体
+matplotlib.rcParams[u'font.sans-serif'] = ['simhei']
+matplotlib.rcParams['axes.unicode_minus'] = False
 
 
 ###############################################
@@ -80,13 +85,118 @@ def sgd(params, lr, batch_size):
     for param in params:
         param.data -= lr * param.grad / batch_size
 
-def prepare_linear_data(num_examples,num_inputs, true_w, true_b):
+
+def prepare_linear_data(num_examples, num_inputs, true_w, true_b):
     """  生成线性回归的测试数据 """
     features = torch.rand(num_examples, num_inputs, dtype=torch.float32)
     labels = true_w[0] * features[:, 0] + true_w[1] * features[:, 1] + true_b
     labels += torch.tensor(np.random.normal(0, 0.01, size=labels.size()), dtype=torch.float32)
     return features, labels
 
+
+def get_fashion_mnish_labels(labels, isEn=True):
+    """ 获取 fashion_mnish labels """
+    text_labels = ['t-shirt', 'trouser', 'pullover', 'dress', 'coat',
+                   'sandal', 'shirt', 'sneaker', 'bag', 'ankle boot']
+
+    text_labels_zh = ['T恤', '裤子', '套头衫', '连衣裙', '外套', '凉鞋', '衬衫', '运动鞋', '包', '短靴']
+    if isEn:
+        return [text_labels[int(i)] for i in labels]
+    else:
+        return [text_labels_zh[int(i)] for i in labels]
+
+
+def show_fashion_mnist(images, labels):
+    """ 显示多张图片和对应的标签  """
+    use_svg_display()
+    _, figs = plt.subplots(1, len(images), figsize=(12, 12))
+    for f, img, lbl in zip(figs, images, labels):
+        f.imshow(img.view((28, 28)).numpy())
+        f.set_title(lbl)
+        f.axes.get_xaxis().set_visible(False)
+        f.axes.get_yaxis().set_visible(False)
+    plt.show()
+
+
+def load_data_fashion_mnist(batch_size=256, root=DATA_FASHION_MNIST_DIR):
+    """ 读取 Fashion-mnist 数据集 """
+    if sys.platform.startswith('win'):
+        num_workers = 0
+    else:
+        num_workers = 8
+
+    mnist_train = torchvision.datasets.FashionMNIST(root=root,
+                                                    train=True, transform=torchvision.transforms.ToTensor(),
+                                                    download=True)
+    mnist_test = torchvision.datasets.FashionMNIST(root=root,
+                                                   train=False, transform=torchvision.transforms.ToTensor(),
+                                                   download=True)
+
+    train_iter = torch.utils.data.DataLoader(dataset=mnist_train, batch_size=batch_size, shuffle=True,
+                                             num_workers=num_workers)
+    test_iter = torch.utils.data.DataLoader(dataset=mnist_test, batch_size=batch_size, shuffle=False,
+                                            num_workers=num_workers)
+
+    return train_iter, test_iter
+
+def softmax(X):
+    """ softmax 函数 """
+    X_exp = X.exp()
+    partition = X_exp.sum(dim=1,keepdim=True)
+    return  X_exp/ partition
+
+def softmax_regressive(X,W,b ,num_inputs):
+    """ softmax 回归模型 """
+    return softmax(torch.mm(X.view((-1,num_inputs)),W) + b)
+
+
+def cross_entropy(y_hat,y):
+    """ 交叉熵损失函数 """
+    return -torch.log(y_hat.gather(1,y.view(-1,1)))
+
+
+def accuracy(y_hat,y):
+    """分类准确率函数 """
+    return (y_hat.argmax(dim=1) == y).float().mean().item()
+
+def evaluate_accuracy(data_iter,net):
+    """ 评价模型net 在 数据集data_iter上的准确率 """
+    acc_sum,n = 0.0,0
+    for X, y in data_iter:
+        acc_sum += (net(X).argmax(dim=1) == y).float().sum().item()
+        n += y.shape[0]
+    return acc_sum /n
+
+def train_ch3(net,train_iter,test_iter,loss,num_epochs,batch_size,params=None,lr=None,optimizer=None):
+    """ 训练函数 """
+    for epoch in range(num_epochs):
+        start = time.time()
+        train_l_sum,train_acc_sum , n = 0.0,0.0,0
+        for X,y in train_iter:
+            y_hat = net(X)
+            l = loss(y_hat,y).sum()
+
+            # 梯度清零
+            if optimizer is not None:
+                optimizer.zero_grad()
+            elif params is not  None and params[0].grad is not None:
+                for param in params:
+                    param.grad.data.zero_()
+
+            l.backward()
+            if optimizer is None:
+                sgd(params,lr,batch_size)
+            else:
+                optimizer.step()
+
+            train_l_sum += l.item()
+            train_acc_sum += (y_hat.argmax(dim=1) == y).sum().item()
+            n += y.shape[0]
+        test_acc = evaluate_accuracy(test_iter,net)
+        print('epoch %d, loss %.4f, train acc %.3f , test acc %.3f, time: %.3f sec'
+              %(epoch +1,train_l_sum / n ,train_acc_sum / n ,test_acc,(time.time() -start)))
+
+            
 
 def corr2d(X, K):
     h, w = K.shape
@@ -152,7 +262,7 @@ class LetNet(nn.Module):
         return output
 
 
-def load_data_fashion_mnist(batch_size, resize=None, root=DATA_MNIST_DIR):
+def load_data_mnist(batch_size, resize=None, root=DATA_MNIST_DIR):
     """Download the fashion mnist dataset and then load into memory."""
     # 加载训练集
 

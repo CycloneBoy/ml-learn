@@ -203,7 +203,7 @@ def test_letnet():
     lr, num_epochs = 0.001, 5
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     batch_size = 256
-    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size=batch_size)
+    train_iter, test_iter = d2l.load_data_mnist(batch_size=batch_size)
     d2l.train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
 
 
@@ -216,7 +216,7 @@ def test_alexnet():
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     # 这时候我们可以开始训练AlexNet了。相对于LeNet，由于图片尺寸变大了而且模型变大了，所以需要更大的显存，也需要更长的训练时间了。
     batch_size = 32
-    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size=batch_size, resize=224)
+    train_iter, test_iter = d2l.load_data_mnist(batch_size=batch_size, resize=224)
     d2l.train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
 
 
@@ -226,7 +226,7 @@ def test_vgg11():
     log.info(net)
     batch_size = 64
     # 如出现“out of memory”的报错信息，可减小batch_size或resize
-    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size, resize=224)
+    train_iter, test_iter = d2l.load_data_mnist(batch_size, resize=224)
 
     lr, num_epochs = 0.001, 5
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
@@ -238,7 +238,7 @@ def test_nin_net():
     log.info(net)
     batch_size = 64
     # 如出现“out of memory”的报错信息，可减小batch_size或resize
-    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size, resize=224)
+    train_iter, test_iter = d2l.load_data_mnist(batch_size, resize=224)
 
     lr, num_epochs = 0.002, 5
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
@@ -251,7 +251,7 @@ def test_google_net():
     log.info(net)
     batch_size = 16
     # 如出现“out of memory”的报错信息，可减小batch_size或resize
-    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size, resize=224)
+    train_iter, test_iter = d2l.load_data_mnist(batch_size, resize=224)
 
     lr, num_epochs = 0.001, 5
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
@@ -264,7 +264,7 @@ def test_letnet_batch_normal():
     log.info(net)
     batch_size = 256
     # 如出现“out of memory”的报错信息，可减小batch_size或resize
-    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)
+    train_iter, test_iter = d2l.load_data_mnist(batch_size)
 
     lr, num_epochs = 0.001, 5
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
@@ -278,7 +278,7 @@ def test_letnet_torch_batch_normal():
     log.info(net)
     batch_size = 256
     # 如出现“out of memory”的报错信息，可减小batch_size或resize
-    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)
+    train_iter, test_iter = d2l.load_data_mnist(batch_size)
 
     lr, num_epochs = 0.001, 5
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
@@ -305,7 +305,7 @@ def test_resnet():
     log.info(net)
     batch_size = 256
     # 如出现“out of memory”的报错信息，可减小batch_size或resize
-    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)
+    train_iter, test_iter = d2l.load_data_mnist(batch_size)
 
     lr, num_epochs = 0.001, 5
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
@@ -320,7 +320,7 @@ def test_dense_net():
     log.info(net)
     batch_size = 256
     # 如出现“out of memory”的报错信息，可减小batch_size或resize
-    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size)
+    train_iter, test_iter = d2l.load_data_mnist(batch_size)
 
     lr, num_epochs = 0.001, 5
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
