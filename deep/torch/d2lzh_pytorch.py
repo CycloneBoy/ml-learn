@@ -159,7 +159,7 @@ def accuracy(y_hat,y):
     """分类准确率函数 """
     return (y_hat.argmax(dim=1) == y).float().mean().item()
 
-def evaluate_accuracy(data_iter,net):
+def evaluate_accuracy_ch3(data_iter,net):
     """ 评价模型net 在 数据集data_iter上的准确率 """
     acc_sum,n = 0.0,0
     for X, y in data_iter:

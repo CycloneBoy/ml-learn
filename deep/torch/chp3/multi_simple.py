@@ -42,9 +42,6 @@ class MultiLinearNet(nn.Module):
         y = self.linear2(y)
         return y
 
-        return y
-
-
 
 if __name__ == '__main__':
 
