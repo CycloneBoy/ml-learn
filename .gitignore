@@ -17,3 +17,8 @@ data
 
 *.txt
 
+*.csv
+
+# pytorch 模型
+*.pt
+
