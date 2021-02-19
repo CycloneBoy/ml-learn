@@ -118,18 +118,22 @@ def show_fashion_mnist(images, labels):
     plt.show()
 
 
-def load_data_fashion_mnist(batch_size=256, root=DATA_FASHION_MNIST_DIR):
+def load_data_fashion_mnist(batch_size=256,resize=None, root=DATA_FASHION_MNIST_DIR):
     """ 读取 Fashion-mnist 数据集 """
     if sys.platform.startswith('win'):
         num_workers = 0
     else:
         num_workers = 8
+    trans = []
+    if resize:
+        trans.append(torchvision.transforms.Resize(size=resize))
+    trans.append(torchvision.transforms.ToTensor())
+    transform = torchvision.transforms.Compose(trans)
 
-    mnist_train = torchvision.datasets.FashionMNIST(root=root,
-                                                    train=True, transform=torchvision.transforms.ToTensor(),
+    mnist_train = torchvision.datasets.FashionMNIST(root=root,train=True, transform=transform,
                                                     download=True)
     mnist_test = torchvision.datasets.FashionMNIST(root=root,
-                                                   train=False, transform=torchvision.transforms.ToTensor(),
+                                                   train=False, transform=transform,
                                                    download=True)
 
     train_iter = torch.utils.data.DataLoader(dataset=mnist_train, batch_size=batch_size, shuffle=True,
@@ -469,6 +473,7 @@ class FlattenLayer(nn.Module):
 
 
 def vgg_block(num_covs, in_channels, out_channels):
+    ''' vgg 块　'''
     blk = []
     for i in range(num_covs):
         if i == 0:

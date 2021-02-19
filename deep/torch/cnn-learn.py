@@ -221,7 +221,9 @@ def test_lenet():
     lr, num_epochs = 0.001, 5
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     batch_size = 256
-    train_iter, test_iter = d2l.load_data_mnist(batch_size=batch_size)
+    # train_iter, test_iter = d2l.load_data_mnist(batch_size=batch_size)
+    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size=batch_size)
+
     d2l.train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
 
 
@@ -233,9 +235,9 @@ def test_alexnet():
     lr, num_epochs = 0.001, 5
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     # 这时候我们可以开始训练AlexNet了。相对于LeNet，由于图片尺寸变大了而且模型变大了，所以需要更大的显存，也需要更长的训练时间了。
-    batch_size = 32
-    # train_iter, test_iter = d2l.load_data_mnist(batch_size=batch_size, resize=224)
-    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size=batch_size)
+    batch_size = 8
+    train_iter, test_iter = d2l.load_data_mnist(batch_size=batch_size, resize=224)
+    # train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size=batch_size, resize=224)
     d2l.train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
 
 
@@ -349,9 +351,9 @@ def test_dense_net():
 
 
 if __name__ == '__main__':
-    test_lenet()
+    # test_lenet()
     # test_alexnet()
-    # test_vgg11()
+    test_vgg11()
     # test_nin_net()
     # test_google_net()
     # test_letnet_batch_normal()
