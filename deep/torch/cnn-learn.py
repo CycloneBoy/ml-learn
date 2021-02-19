@@ -4,6 +4,11 @@
 # @Author: sl
 # @Date  : 2020/10/3 - 下午9:36
 
+"""
+卷积神经网络 相关知识点
+<<动手学第五章>>
+
+"""
 # https://tangshusen.me/Dive-into-DL-PyTorch/#/chapter05_CNN/5.4_pooling
 
 import sys
@@ -57,6 +62,7 @@ print(Y)
 
 # 5.1.4 通过数据学习核数组
 
+# 构造一个核数组形状是(1, 2)的二维卷积层
 conv2d = Conv2D(kernel_size=(1, 2))
 
 step = 50
@@ -66,9 +72,11 @@ for i in range(step):
     l = ((Y_hat - Y) ** 2).sum()
     l.backward()
 
+    # 梯度下降
     conv2d.weight.data -= lr * conv2d.weight.grad
     conv2d.bias.data -= lr * conv2d.bias.grad
 
+    # 梯度清0
     conv2d.weight.grad.fill_(0)
     conv2d.bias.grad.fill_(0)
     if (i + 1) % 5 == 0:
@@ -77,10 +85,14 @@ for i in range(step):
 print("weight: ", conv2d.weight.data)
 print("bias: ", conv2d.bias.data)
 
+#　５.2 卷积填充和步幅
 
+# 定义一个函数来计算卷积层。它对输入和输出做相应的升维和降维
 def comp_conv2d(conv2d, X):
+    # (1, 1)代表批量大小和通道数（“多输入通道和多输出通道”一节将介绍）均为1
     X = X.view((1, 1) + X.shape)
     Y = conv2d(X)
+    # 排除不关心的前两维：批量和通道
     return Y.view(Y.shape[2:])
 
 
@@ -107,6 +119,7 @@ print(x_shape)
 # 5.3.1 多输入通道
 
 def corr2d_multi_in(X, K):
+    # 沿着X和K的第0维（通道维）分别计算再相加
     res = corr2d(X[0, :, :], K[0, :, :])
     for i in range(1, X.shape[0]):
         res += corr2d(X[i, :, :], K[i, :, :])
@@ -124,6 +137,7 @@ print(res)
 # 5.3.2 多输出通道
 
 def corr2d_multi_in_out(X, K):
+    # 对K的第0维遍历，每次同输入X做互相关计算。所有结果使用stack函数合并在一起
     return torch.stack([corr2d_multi_in(X, k) for k in K])
 
 
@@ -154,6 +168,7 @@ Y2 = corr2d_multi_in_out(X, K)
 res = (Y1 - Y2).norm().item() < 1e-6
 print(res)
 
+# 5.4 池化层
 
 def pool2d(X, pool_size, mode='max'):
     X = X.float()
@@ -170,6 +185,9 @@ def pool2d(X, pool_size, mode='max'):
 
 X = torch.tensor([[0, 1, 2], [3, 4, 5], [6, 7, 8]])
 res = pool2d(X, (2, 2))
+print(res)
+
+res = pool2d(X, (2, 2),'avg')
 print(res)
 
 X = torch.arange(16, dtype=torch.float).view((1, 1, 4, 4))
@@ -195,10 +213,10 @@ res = pool2d(X)
 print(res)
 
 
-def test_letnet():
-    # LetNet
-    log.info("测试　LetNet")
-    net = d2l.LetNet()
+def test_lenet():
+    # LeNet
+    log.info("测试　LeNet")
+    net = d2l.LeNet()
     log.info(net)
     lr, num_epochs = 0.001, 5
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
@@ -216,7 +234,8 @@ def test_alexnet():
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
     # 这时候我们可以开始训练AlexNet了。相对于LeNet，由于图片尺寸变大了而且模型变大了，所以需要更大的显存，也需要更长的训练时间了。
     batch_size = 32
-    train_iter, test_iter = d2l.load_data_mnist(batch_size=batch_size, resize=224)
+    # train_iter, test_iter = d2l.load_data_mnist(batch_size=batch_size, resize=224)
+    train_iter, test_iter = d2l.load_data_fashion_mnist(batch_size=batch_size)
     d2l.train_ch5(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
 
 
@@ -330,7 +349,7 @@ def test_dense_net():
 
 
 if __name__ == '__main__':
-    # test_letnet()
+    test_lenet()
     # test_alexnet()
     # test_vgg11()
     # test_nin_net()
@@ -339,4 +358,5 @@ if __name__ == '__main__':
     # test_letnet_torch_batch_normal()
     # test_residual()
     # test_resnet()
-    test_dense_net()
+    # test_dense_net()
+    pass

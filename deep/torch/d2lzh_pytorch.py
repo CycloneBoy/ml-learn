@@ -254,7 +254,13 @@ def fit_and_plot(train_features,test_features,train_labels,test_labels,num_epoch
 
     print('weight:' ,net.weight.data,'\nbias' ,net.bias.data)
 
+###############################################
+# 第五章函数  卷积神经网络
+#
+###############################################
+
 def corr2d(X, K):
+    """ 互相关 """
     h, w = K.shape
     Y = torch.zeros((X.shape[0] - h + 1, X.shape[1] - w + 1))
     for i in range(Y.shape[0]):
@@ -264,7 +270,7 @@ def corr2d(X, K):
 
 
 class Conv2D(nn.Module):
-
+    """ 二维卷基层 """
     def __init__(self, kernel_size):
         super(Conv2D, self).__init__()
         self.weight = nn.Parameter(torch.randn(kernel_size))
@@ -275,12 +281,14 @@ class Conv2D(nn.Module):
 
 
 def comp_conv2d(conv2d, X):
+    """二维互相关　 """
     X = X.view((1, 1) + X.shape)
     Y = conv2d(X)
     return Y.view(Y.shape[2:])
 
 
 def pool2d(X, pool_size, mode='max'):
+    """ 最大值池化和平均值池化 """
     X = X.float()
     p_h, p_w = pool_size
     Y = torch.zeros((X.shape[0] - p_h + 1, X.shape[1] - p_w + 1))
@@ -293,9 +301,9 @@ def pool2d(X, pool_size, mode='max'):
     return Y
 
 
-class LetNet(nn.Module):
+class LeNet(nn.Module):
     def __init__(self):
-        super(LetNet, self).__init__()
+        super(LeNet, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(1, 6, 5),  # in_channels, out_channels, kernel_size
             nn.Sigmoid(),
