@@ -16,7 +16,7 @@ class Detector:
     def shape_to_np(self, shape, dtype="int"):
         coords = np.zeros((68, 2), dtype=dtype)
         for idx in range(0, 68):
-            coords[idx] = (shape.part(idx).x, shape.part(idx).y)
+            coords[idx] = (shape.part(idx).file, shape.part(idx).y)
         return coords
 
     def detect_face(self, img, debug=False):

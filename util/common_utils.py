@@ -84,6 +84,18 @@ def save_model(net,filename="model1.pth",datadir=MODEL_NLP_DIR):
     print("保存模型:",save_model)
     torch.save(net, save_model)
 
+def get_TF(words,topK=10):
+    """
+    获取词列表中的 topK
+    :param words:
+    :param topK:
+    :return:
+    """
+    tf_dic = {}
+    for w in words:
+        tf_dic[w] = tf_dic.get(w,0) + 1
+    return sorted(tf_dic.items(),key = lambda x: x[1],reverse=True)[:topK]
+
 if __name__ == '__main__':
     # mkdir("/home/sl/workspace/data/test")
 

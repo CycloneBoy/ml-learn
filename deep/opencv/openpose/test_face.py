@@ -44,12 +44,12 @@ def get_image_points_from_landmark_shape(landmark_shape):
 
     # 2D image points. If you change the image, you need to change vector
     image_points = np.array([
-        (landmark_shape.part(30).x, landmark_shape.part(30).y),  # Nose tip
-        (landmark_shape.part(8).x, landmark_shape.part(8).y),  # Chin
-        (landmark_shape.part(36).x, landmark_shape.part(36).y),  # Left eye left corner
-        (landmark_shape.part(45).x, landmark_shape.part(45).y),  # Right eye right corne
-        (landmark_shape.part(48).x, landmark_shape.part(48).y),  # Left Mouth corner
-        (landmark_shape.part(54).x, landmark_shape.part(54).y)  # Right mouth corner
+        (landmark_shape.part(30).file, landmark_shape.part(30).y),  # Nose tip
+        (landmark_shape.part(8).file, landmark_shape.part(8).y),  # Chin
+        (landmark_shape.part(36).file, landmark_shape.part(36).y),  # Left eye left corner
+        (landmark_shape.part(45).file, landmark_shape.part(45).y),  # Right eye right corne
+        (landmark_shape.part(48).file, landmark_shape.part(48).y),  # Left Mouth corner
+        (landmark_shape.part(54).file, landmark_shape.part(54).y)  # Right mouth corner
     ], dtype="double")
 
     return 0, image_points

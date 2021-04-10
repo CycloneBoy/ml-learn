@@ -28,3 +28,16 @@ MODEL_NLP_DIR = '/home/sl/workspace/data/nlp/model'
 
 # opencv 图片地址
 OPENCV_IMAGE_DIR = '/home/sl/data'
+
+############################################################################
+# 文本相关的数据路径
+
+# 新闻语料库
+DATA_TXT_NEWS_DIR = '/home/sl/workspace/python/github/learning-nlp-master/chapter-3/data/news'
+# 停用词路径 合并github上的5个文件后的,停用词大小: 2524
+DATA_TXT_STOP_WORDS_DIR = '/home/sl/workspace/data/nlp/stopwords/stop_words.utf8'
+# github 上的停用词
+DATA_TXT_STOP_WORDS_GITHUB_DIR = '/home/sl/workspace/data/nlp/stopwords'
+
+############################################################################
+

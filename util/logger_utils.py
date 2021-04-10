@@ -21,7 +21,7 @@ class Logger(object):
     }  # 日志级别关系映射
 
     def __init__(self, filename, level='info', when='D', backCount=3,
-                 fmt='%(asctime)s - %(pathname)s[line:%(lineno)d] -[%(threadName)s(%(process)d)]- %(levelname)s: %(message)s'):
+                 fmt='%(asctime)s %(levelname)s %(pathname)s[%(lineno)d]: %(message)s'):
         filename_str = get_log_file_name(filename)
         self.logger = logging.getLogger(filename_str)
         format_str = logging.Formatter(fmt)  # 设置日志格式
