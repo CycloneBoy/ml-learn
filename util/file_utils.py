@@ -73,8 +73,22 @@ def test_get_one_news():
     print(corpus[sample_inx])
 
 
+def save_to_text(filename,content):
+    """
+    保存为文本
+    :param filename:
+    :param content:
+    :return:
+    """
+    with open(filename,'w',encoding='utf-8') as f:
+        f.writelines(content)
+
 if __name__ == '__main__':
     # test_get_one_news()
 
-    build_stop_words()
+    # build_stop_words()
+
+    filename = "../data/test/test1.txt"
+    save_to_text(filename,'hhhhhhhhhhhhhhhhhhhhhhhhhhhhh\nrrrr\n333333')
+
     pass

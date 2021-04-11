@@ -8,6 +8,8 @@
 """
 NLP 相关的工具类
 """
+import jieba
+import jieba.posseg as psg
 from util.constant import DATA_TXT_STOP_WORDS_DIR
 
 
@@ -19,6 +21,23 @@ def stop_words(path=DATA_TXT_STOP_WORDS_DIR):
     """
     with open(path, 'r') as f:
         return [l.strip() for l in f]
+    
+def seg_to_list(sentence,pos = False):
+    """
+    分词方法，调用结巴接口
+    :param sentence: 
+    :param pos: 
+    :return: 
+    """
+    if not pos:
+        # 不进行词性标注的分词方法
+        seg_list = jieba.cut(sentence)
+    else:
+        # 进行词性标注的分词方法
+        seg_list = psg.cut(sentence)
+    return seg_list
+
+
 
 if __name__ == '__main__':
     words = stop_words()
