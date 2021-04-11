@@ -199,8 +199,9 @@ class HMM(object):
 
         return self
 
-    # veterbi 算法 求最大概率的路径
-    def veterbi(self, text, states, start_p, trans_p, emit_p):
+    # viterbi 算法 求最大概率的路径
+    # 关于该算法的数学推导，可以查阅一下李航统计学习方法10.4.2，或者是Speech and Language Processing8.4.5
+    def viterbi(self, text, states, start_p, trans_p, emit_p):
         V = [{}]
         path = {}
         for y in states:
@@ -236,7 +237,7 @@ class HMM(object):
         import os
         if not self.load_para:
             self.try_load_model(os.path.exists(self.model_file))
-        prob, pos_list = self.veterbi(text, self.state_list, self.Pi_dic, self.A_dic, self.B_dic)
+        prob, pos_list = self.viterbi(text, self.state_list, self.Pi_dic, self.A_dic, self.B_dic)
         begin, next = 0, 0
         for i, char in enumerate(text):
             pos = pos_list[i]
