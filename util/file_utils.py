@@ -13,6 +13,7 @@ from util.logger_utils import get_log
 import os
 import glob
 import random
+import json
 
 log = get_log("{}.log".format(str(os.path.split(__file__)[1]).replace(".py", '')))
 
@@ -82,6 +83,16 @@ def save_to_text(filename,content):
     """
     with open(filename,'w',encoding='utf-8') as f:
         f.writelines(content)
+
+def save_to_json(filename,content):
+    """
+    保存map 数据
+    :param filename:
+    :param maps:
+    :return:
+    """
+    with open(filename,'w',encoding='utf-8') as f:
+        json.dump(content,f,ensure_ascii=False)
 
 if __name__ == '__main__':
     # test_get_one_news()
