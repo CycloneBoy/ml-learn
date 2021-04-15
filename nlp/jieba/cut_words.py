@@ -28,7 +28,7 @@ from util.logger_utils import get_log
 import os
 
 from util.nlp_utils import stop_words
-
+import os
 log = get_log("{}.log".format(str(os.path.split(__file__)[1]).replace(".py", '')))
 
 

@@ -9,21 +9,28 @@ HMM 模型
 """
 import torch
 
+import os
+from util.logger_utils import get_log
+log = get_log("{}.log".format(str(os.path.split(__file__)[1]).replace(".py", '')))
+
 
 class HMM(object):
-    def __init__(self, M, N):
+    def __init__(self,  N,M):
         """
         初始化
-        :param M: 观测数，这里对应有多少不同的字
         :param N: 状态数，这里对应存在的标注的种类
+        :param M: 观测数，这里对应有多少不同的字
         """
-        self.M = self.M
-        self.N = self.N
+        self.N = N
+        self.M = M
+
+
+        log.info("HMM模型: 状态数 - {}  观测数 - {}".format(self.N,self.M))
 
         # 状态转移概率矩阵 A[i][j]表示从i状态转移到j状态的概率
         self.A = torch.zeros(N, N)
         # 观测概率矩阵, B[i][j]表示i状态下生成j观测的概率
-        self.B = torch.zeros(M, M)
+        self.B = torch.zeros(N, M)
         # 初始状态概率  Pi[i]表示初始时刻为状态i的概率
         self.Pi = torch.zeros(N)
 
@@ -38,6 +45,7 @@ class HMM(object):
         :param tag2id: 字典，将标注映射为ID
         :return:
         """
+        log.info("开始训练")
         assert len(tag_lists) == len(word_lists)
 
         # 估计转移概率矩阵
@@ -49,9 +57,9 @@ class HMM(object):
                 self.A[current_tagid][next_tagid] += 1
         # 问题：如果某元素没有出现过，该位置为0，这在后续的计算中是不允许的
         # 解决方法：我们将等于0的概率加上很小的数
-        self.A = self._normal(self.A)
-        # self.A[self.A == 0.] = 1e-10
-        # self.A = self.A / self.A.sum(dim=1, keepdim=True)
+        # self.A = self._normal(self.A)
+        self.A[self.A == 0.] = 1e-10
+        self.A = self.A / self.A.sum(dim=1, keepdim=True)
 
         # 估计观测概率矩阵
         for tag_list, word_list in zip(tag_lists, word_lists):
@@ -61,17 +69,18 @@ class HMM(object):
                 word_id = word2id[word]
                 self.B[tag_id][word_id] += 1
 
-        self.B = self._normal(self.B)
-        # self.B[self.B == 0.] = 1e-10
-        # self.B = self.B / self.B.sum(dim=1, keepdim=True)
+        # self.B = self._normal(self.B)
+        self.B[self.B == 0.] = 1e-10
+        self.B = self.B / self.B.sum(dim=1, keepdim=True)
 
         # 估计初始状态概率
         for tag_list in tag_lists:
             init_tagid = tag2id[tag_list[0]]
             self.Pi[init_tagid] += 1
-        self.Pi = self._normal(self.Pi)
-        # self.Pi[self.Pi == 0.] = 1e-10
-        # self.Pi = self.Pi / self.Pi.sum(dim=1, keepdim=True)
+        # self.Pi = self._normal(self.Pi)
+        self.Pi[self.Pi == 0.] = 1e-10
+        self.Pi = self.Pi / self.Pi.sum()
+        log.info("结束训练")
 
     def _normal(self, X):
         X[X == 0.] = 1e-10
@@ -79,10 +88,12 @@ class HMM(object):
         return X
 
     def test(self, word_lists, word2id, tag2id):
+        log.info("开始验证")
         pred_tag_lists = []
         for word_list in word_lists:
             pred_tag_list = self.decoding(word_list, word2id, tag2id)
             pred_tag_lists.append(pred_tag_list)
+        log.info("结束验证")
         return pred_tag_lists
 
     def decoding(self, word_list, word2id, tag2id):
@@ -166,3 +177,5 @@ class HMM(object):
         tag_list = [id2tag[id_] for id_ in reversed(best_path)]
 
         return tag_list
+
+

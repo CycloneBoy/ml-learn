@@ -39,7 +39,7 @@ class Metrics(object):
         self.golden_tags_counter = Counter(self.golden_tags)
 
         # 计算精确率
-        self.precision_scores = self.calc_precision()
+        self.precision_scores = self.cal_precision()
 
         # 计算召回率
         self.recall_scores = self.calc_recall()
@@ -76,14 +76,17 @@ class Metrics(object):
 
         return correct_dict
 
-    def calc_precision(self):
+    def cal_precision(self):
         """
         计算精确率
         :return:
         """
         precision_scores = {}
         for tag in self.tagset:
-            precision_scores[tag] = self.correct_tags_number.get(tag, 0) / \
+            if  self.predict_tags_counter[tag] == 0:
+                precision_scores[tag] = 0
+            else:
+                precision_scores[tag] = self.correct_tags_number.get(tag, 0) / \
                                     self.predict_tags_counter[tag]
 
         return precision_scores
@@ -96,7 +99,7 @@ class Metrics(object):
         recall_scores = {}
         for tag in self.tagset:
             recall_scores[tag] = self.correct_tags_number.get(tag, 0) / \
-                                 self.golden_tags[tag]
+                                 self.golden_tags_counter[tag]
 
         return recall_scores
 
@@ -130,13 +133,13 @@ class Metrics(object):
         # 打印表头
         header_format = '{:>9s}  {:>9s}  {:>9s}  {:>9s}  {:>9s}'
         header = ['precision', 'recall', 'f1-score', 'support']
-        print(header_format.format('',*header))
+        print(header_format.format('', *header))
 
         row_format = '{:>9s}  {:>9.4f}  {:>9.4f}  {:>9.4f}  {:>9}'
         # 打印每个标签的 精确率、召回率、f1分数
         for tag in self.tagset:
             print(row_format.format(
-                tag,self.precision_scores[tag],
+                tag, self.precision_scores[tag],
                 self.recall_scores[tag],
                 self.f1_scores[tag],
                 self.golden_tags_counter[tag]
@@ -152,4 +155,53 @@ class Metrics(object):
         ))
 
     def _cal_weighted_average(self):
-        pass
+        """
+        计算平均值
+        :return:
+        """
+        weighted_average = {}
+        total = len(self.golden_tags)
+
+        # 计算weighted precisions:
+        weighted_average['precision'] = 0.
+        weighted_average['recall'] = 0.
+        weighted_average['f1_score'] = 0.
+
+        for tag in self.tagset:
+            size = self.golden_tags_counter[tag]
+            weighted_average['precision'] = self.precision_scores[tag] * size
+            weighted_average['recall'] = self.recall_scores[tag] * size
+            weighted_average['f1_score'] = self.f1_scores[tag] * size
+
+        for metric in weighted_average.keys():
+            weighted_average[metric] /= total
+
+        return weighted_average
+
+    def report_confusion_matrix(self):
+        """
+        计算混淆矩阵
+        :return:
+        """
+        print("\nConfusion Matirx:")
+        tag_list = list(self.tagset)
+        # 初始化混淆矩阵 matrix[i][j]表示第i个tag被模型预测成第j个tag的次数
+        tags_size = len(tag_list)
+        matrix = []
+        for i in range(tags_size):
+            matrix.append([0] * tags_size)
+
+        # 遍历tags列表
+        for gold_tag, predict_tag in zip(self.golden_tags, self.predict_tags):
+            try:
+                row = tag_list.index(gold_tag)
+                col = tag_list.index(predict_tag)
+                matrix[row][col] += 1
+            except ValueError:  # 有极少数标记没有出现在golden_tags，但出现在predict_tags，跳过这些标记
+                continue
+
+        # 输出矩阵
+        row_format_ = '{:>7} ' * (tags_size + 1)
+        print(row_format_.format("", *tag_list))
+        for i, row in enumerate(matrix):
+            print(row_format_.format(tag_list[i], *row))
