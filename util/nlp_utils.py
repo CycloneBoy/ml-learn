@@ -12,7 +12,9 @@ import pickle
 
 import jieba
 import jieba.posseg as psg
-from typing import Type
+
+import torch
+import torch.nn.functional as F
 
 from util.constant import DATA_TXT_STOP_WORDS_DIR
 
@@ -101,7 +103,7 @@ def extend_maps(word2id, tag2id, for_crf=True):
     return word2id, tag2id
 
 
-def process_data_for_lstmcrf(word_lists,tag_lists,test=False):
+def process_data_for_lstmcrf(word_lists, tag_lists, test=False):
     """
     lstmcrf 特殊处理
     :param word_lists:
@@ -109,14 +111,14 @@ def process_data_for_lstmcrf(word_lists,tag_lists,test=False):
     :param test:
     :return:
     """
-    assert  len(word_lists) ==  len(tag_lists)
-    for i in  range(len(word_lists)):
+    assert len(word_lists) == len(tag_lists)
+    for i in range(len(word_lists)):
         word_lists[i].append('<end>')
         # 如果是测试数据，就不需要加end token了
         if not test:
             tag_lists[i].append('<end>')
 
-    return word_lists,tag_lists
+    return word_lists, tag_lists
 
 
 def flatten_lists(lists):
@@ -134,6 +136,37 @@ def flatten_lists(lists):
     return flatten_list
 
 
+# ******** CRF 工具函数*************
+def word2features(sent, i):
+    """
+    抽取单个字的特征
+    :param sent:
+    :param i:
+    :return:
+    """
+    word = sent[i]
+    prev_word = "<s>" if i == 0 else sent[i - 1]
+    next_word = "</s" if i == (len(sent) - 1) else sent[i + 1]
+    # 使用的特征：
+    # 前一个词，当前词，后一个词，
+    # 前一个词+当前词， 当前词+后一个词
+    features = {
+        'w': word,
+        'w-1': prev_word,
+        'w+1': next_word,
+        'w-1:w': prev_word + word,
+        'w:w+1': word + next_word,
+        'bias': 1
+    }
+    return features
+
+def sent2features(sent):
+    """
+    抽取序列特征
+    :param sent:
+    :return:
+    """
+    return [word2features(sent,i) for i in range(len(sent))]
 
 if __name__ == '__main__':
     words = stop_words()

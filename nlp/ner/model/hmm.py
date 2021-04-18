@@ -11,6 +11,8 @@ import torch
 
 import os
 from util.logger_utils import get_log
+from util.time_utils import time_cost
+
 log = get_log("{}.log".format(str(os.path.split(__file__)[1]).replace(".py", '')))
 
 
@@ -34,6 +36,7 @@ class HMM(object):
         # 初始状态概率  Pi[i]表示初始时刻为状态i的概率
         self.Pi = torch.zeros(N)
 
+    @time_cost
     def train(self, word_lists, tag_lists, word2id, tag2id):
         """HMM的训练，即根据训练语料对模型参数进行估计,
            因为我们有观测序列以及其对应的状态序列，所以我们
@@ -87,6 +90,7 @@ class HMM(object):
         X = X / X.sum(dim=1, keepdim=True)
         return X
 
+    @time_cost
     def test(self, word_lists, word2id, tag2id):
         log.info("开始验证")
         pred_tag_lists = []
