@@ -143,7 +143,7 @@ class HMM(object):
         # 其中word是step时刻对应的字
         # 由上述递推公式求后续各步
         for step in range(1, seq_len):
-            wordid = word2id.get(word_list[0], None)
+            wordid = word2id.get(word_list[step], None)
             # 处理字不在字典中的情况
             # bt是在t时刻字为wordid时，状态的概率分布
             if wordid is None:
