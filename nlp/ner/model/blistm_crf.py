@@ -9,6 +9,7 @@
 双向LSTM模型 带 CRF
 
 """
+from copy import deepcopy
 from itertools import zip_longest
 
 import torch
@@ -17,7 +18,7 @@ import torch.optim as optim
 
 from .bilstm import BiLSTM
 from .config import LSTMConfig, TrainingConfig
-from .utils import cal_loss, cal_lstm_crf_loss, sort_by_lengths
+from .utils import cal_loss, cal_lstm_crf_loss, sort_by_lengths, tensorized
 
 
 class BiLSTM_Model(object):
@@ -92,10 +93,84 @@ class BiLSTM_Model(object):
         self.step +=1
         # 准备数据
         tensorized_sents ,lengths = tensorized(batch_sents,word2id)
+        tensorized_sents = tensorized_sents.to(self.device)
+        targets, lengths = tensorized(batch_tags,tag2id)
+        targets = targets.to(self.device)
+
+        # forward
+        scores = self.model(tensorized_sents,lengths)
+
+        # 计算损失 更新参数
+        self.optimizer.zero_grad()
+        loss = self.calc_loss_func(scores,targets,tag2id).to(self.device)
+        loss.backward()
+        self.optimizer.step()
+        return loss.item()
 
     def validate(self, dev_word_lists, dev_tag_lists, word2id, tag2id):
-        pass
+        self.model.eval()
+        with torch.no_grad():
+            val_losses = 0.
+            val_step = 0
+            for ind in range(0,len(dev_word_lists),self.batch_size):
+                val_step += 1
+                # 准备batch数据
+                batch_sents = dev_word_lists[ind,ind +self.batch_size]
+                batch_tags = dev_tag_lists[ind,ind +self.batch_size]
 
+                tensorized_sents ,lengths = tensorized(batch_sents,word2id)
+                tensorized_sents = tensorized_sents.to(self.device)
+                targets ,lengths = tensorized(batch_tags,tag2id)
+                targets = targets.to(self.device)
+
+                # forward
+                scores = self.model(tensorized_sents, lengths)
+
+                # 计算损失
+                loss = self.calc_loss_func(scores, targets, tag2id).to(self.device)
+                val_losses += loss.item()
+            val_losse = val_losses/val_step
+
+            if val_losse < self._best_val_loss:
+                print("保存模型....")
+                self.best_model = deepcopy(self.model)
+                self._best_val_loss = val_losse
+            return  val_losse
+
+    def test(self,word_lists,tag_lists,word2id,tag2id):
+        """返回最佳模型在测试集上的预测结果"""
+        # 准备数据
+        word_lists,tag_lists,indices = sort_by_lengths(word_lists,tag_lists)
+        tensorized_sents,lengths = tensorized(word_lists,word2id)
+        tensorized_sents = tensorized_sents.to(self.device)
+
+        self.best_model.eval()
+        with torch.no_grad():
+            batch_tagids = self.best_model.test(
+                tensorized_sents,lengths,tag2id)
+
+        # 将id转化为标注
+        pred_tag_lists = []
+        id2tag = dict((id_,tag) for tag,id_ in tag2id.items())
+        for i ,ids in enumerate(batch_tagids):
+            tag_list = []
+            if self.crf:
+                for j in range(lengths[i] - 1):  # crf解码过程中，end被舍弃
+                    tag_list.append(id2tag[ids[j].item()])
+            else:
+                for j in range(lengths[i] ):
+                    tag_list.append(id2tag[ids[j].item()])
+            pred_tag_lists.append(tag_list)
+
+        # indices存有根据长度排序后的索引映射的信息
+        # 比如若indices = [1, 2, 0] 则说明原先索引为1的元素映射到的新的索引是0，
+        # 索引为2的元素映射到新的索引是1...
+        # 下面根据indices将pred_tag_lists和tag_lists转化为原来的顺序
+        ind_maps = sorted(list(enumerate(indices)),key=lambda e:e[1])
+        indices ,_ = list(zip(*ind_maps))
+        pred_tag_lists = [pred_tag_lists[i] for i in indices]
+        tag_list = [tag_lists[i] for i in indices]
+        return  pred_tag_lists,tag_lists
 
 class BiLSTM_CRF(nn.Module):
     def __init__(self, vacab_size, emb_size, hidden_size, out_size):

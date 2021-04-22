@@ -17,7 +17,13 @@ def tensorized(batch,maps):
     max_len = len(batch[0])
     batch_size = len(batch)
 
-    batch_tensor = torch.ones(batch_size,max_len)
+    batch_tensor = torch.ones(batch_size,max_len).long() * PAD
+    for i,l in enumerate(batch):
+        for j ,e in enumerate(l):
+            batch_tensor[i][j] = maps.get(e,UNK)
+    # batch各个元素的长度
+    lengths = [ len(l) for l in batch]
+    return batch_tensor,lengths
 
 
 def sort_by_lengths(word_lists,tag_lists):
