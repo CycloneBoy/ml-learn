@@ -5,6 +5,7 @@
 # @Date  : 2020/9/22 - 下午10:36
 
 from ltp import LTP
+from transformers import BertModel, BertTokenizer
 
 from util.logger_utils import get_log
 
