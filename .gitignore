@@ -21,4 +21,7 @@
 
 # pytorch 模型
 *.pt
+*.pkl
 
+
+/nlp/transformer/.ipynb_checkpoints/
