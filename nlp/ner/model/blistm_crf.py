@@ -40,11 +40,11 @@ class BiLSTM_Model(object):
         if not crf:
             self.model = BiLSTM(vocab_size, self.emb_size,
                                 self.hidden_size, out_size).to(self.device)
-            self.calc_loss_func = cal_loss
+            self.cal_loss_func = cal_loss
         else:
             self.model = BiLSTM_CRF(vocab_size, self.emb_size,
                                     self.hidden_size, out_size).to(self.device)
-            self.calc_loss_func = cal_lstm_crf_loss
+            self.cal_loss_func = cal_lstm_crf_loss
 
         # 加载训练参数：
         self.epoches = TrainingConfig.epoches
@@ -70,10 +70,11 @@ class BiLSTM_Model(object):
             self.step = 0
             losses = 0.
             for ind in range(0,len(word_lists),B):
-                batch_sents = word_lists[ind,ind+B]
-                batch_tags = tag_lists[ind,ind+B]
+                batch_sents = word_lists[ind:ind+B]
+                batch_tags = tag_lists[ind:ind+B]
 
-                losses += self.train_step(batch_sents,batch_tags,word2id,tag2id)
+                losses += self.train_step(batch_sents,
+                                          batch_tags,word2id,tag2id)
                 if self.step % TrainingConfig.print_step == 0:
                     total_step = (len(word_lists) // B +1)
                     print("Epoch {}, step/total_step: {}/{} {:.2f}% Loss:{:.4f}".format(
@@ -102,7 +103,7 @@ class BiLSTM_Model(object):
 
         # 计算损失 更新参数
         self.optimizer.zero_grad()
-        loss = self.calc_loss_func(scores,targets,tag2id).to(self.device)
+        loss = self.cal_loss_func(scores,targets,tag2id).to(self.device)
         loss.backward()
         self.optimizer.step()
         return loss.item()
@@ -115,10 +116,11 @@ class BiLSTM_Model(object):
             for ind in range(0,len(dev_word_lists),self.batch_size):
                 val_step += 1
                 # 准备batch数据
-                batch_sents = dev_word_lists[ind,ind +self.batch_size]
-                batch_tags = dev_tag_lists[ind,ind +self.batch_size]
+                batch_sents = dev_word_lists[ind:ind +self.batch_size]
+                batch_tags = dev_tag_lists[ind:ind +self.batch_size]
 
-                tensorized_sents ,lengths = tensorized(batch_sents,word2id)
+                tensorized_sents ,lengths = tensorized(batch_sents,
+                                                       word2id)
                 tensorized_sents = tensorized_sents.to(self.device)
                 targets ,lengths = tensorized(batch_tags,tag2id)
                 targets = targets.to(self.device)
@@ -127,15 +129,16 @@ class BiLSTM_Model(object):
                 scores = self.model(tensorized_sents, lengths)
 
                 # 计算损失
-                loss = self.calc_loss_func(scores, targets, tag2id).to(self.device)
+                loss = self.cal_loss_func(scores, targets,
+                                           tag2id).to(self.device)
                 val_losses += loss.item()
-            val_losse = val_losses/val_step
+            val_loss= val_losses/val_step
 
-            if val_losse < self._best_val_loss:
+            if val_loss < self._best_val_loss:
                 print("保存模型....")
                 self.best_model = deepcopy(self.model)
-                self._best_val_loss = val_losse
-            return  val_losse
+                self._best_val_loss = val_loss
+            return  val_loss
 
     def test(self,word_lists,tag_lists,word2id,tag2id):
         """返回最佳模型在测试集上的预测结果"""
@@ -169,8 +172,10 @@ class BiLSTM_Model(object):
         ind_maps = sorted(list(enumerate(indices)),key=lambda e:e[1])
         indices ,_ = list(zip(*ind_maps))
         pred_tag_lists = [pred_tag_lists[i] for i in indices]
-        tag_list = [tag_lists[i] for i in indices]
+        tag_lists = [tag_lists[i] for i in indices]
         return  pred_tag_lists,tag_lists
+
+
 
 class BiLSTM_CRF(nn.Module):
     def __init__(self, vacab_size, emb_size, hidden_size, out_size):
@@ -193,6 +198,7 @@ class BiLSTM_CRF(nn.Module):
     def forward(self, sents_tensor, lengths):
         # [B, L, out_size]
         emission = self.bilstm(sents_tensor, lengths)
+
         # 计算CRF scores, 这个scores大小为[B, L, out_size, out_size]
         # 也就是每个字对应对应一个 [out_size, out_size]的矩阵
         # 这个矩阵第i行第j列的元素的含义是：上一时刻tag为i，这一时刻tag为j的分数
@@ -253,7 +259,7 @@ class BiLSTM_CRF(nn.Module):
                 prev_batch_size_t = len(tags_t)
 
                 new_in_batch = torch.LongTensor(
-                    [end_id] * (batch_size_t - prev_batch_size_t))
+                    [end_id] * (batch_size_t - prev_batch_size_t)).to(device)
                 offset = torch.cat(
                     [tags_t, new_in_batch],
                     dim=0
@@ -268,8 +274,9 @@ class BiLSTM_CRF(nn.Module):
             except RuntimeError:
                 import pdb
                 pdb.set_trace()
-            tags_t = tags_t.squeeze()
-            tagids.append(tags_t.toList())
+            tags_t = tags_t.squeeze(1)
+            tagids.append(tags_t.tolist())
+
         # tagids:[L-1]（L-1是因为扣去了end_token),大小的liebiao
         # 其中列表内的元素是该batch在该时刻的标记
         # 下面修正其顺序，并将维度转换为 [B, L]
@@ -278,3 +285,8 @@ class BiLSTM_CRF(nn.Module):
 
         # 返回解码的结果
         return tagids
+
+
+
+
+

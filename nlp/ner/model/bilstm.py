@@ -29,7 +29,7 @@ class BiLSTM(nn.Module):
                               bidirectional=True)
         self.lin = nn.Linear(2 * hidden_size, out_size)
 
-    def forword(self, sents_tensor, lengths):
+    def forward(self, sents_tensor, lengths):
         emb = self.embedding(sents_tensor)  # [B, L, emb_size]
 
         packed = pack_padded_sequence(emb, lengths, batch_first=True)
@@ -48,6 +48,7 @@ class BiLSTM(nn.Module):
         :param _:
         :return:
         """
-        logits = self.forword(sents_tensor, lengths)  # [B, L, out_size]
+        logits = self.forward(sents_tensor, lengths)  # [B, L, out_size]
         _, batch_tagids = torch.max(logits, dim=2)
         return batch_tagids
+
