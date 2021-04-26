@@ -14,7 +14,7 @@ import numpy as np
 from transformers.modeling_bart import EncoderLayer
 
 from nlp.transformer.model.layers import WeightedEncoderLayer, DecoderLayer, WeightedDecoderLayer
-from nlp.transformer.model.modules import PosEncoding
+from nlp.transformer.model.modules import PosEncoding, Linear
 from nlp.transformer.utils import data_utils
 
 
@@ -90,20 +90,88 @@ class Decoder(nn.Module):
             [self.layer_type(d_k, d_v, d_model, d_ff, n_heads, dropout)
              for _ in range(n_layers)])
 
-    def forward(self, dec_inputs, dec_inputs_len,enc_inputs,enc_outputs, return_attn=False):
+    def forward(self, dec_inputs, dec_inputs_len, enc_inputs, enc_outputs, return_attn=False):
         dec_outputs = self.tgt_emb(dec_inputs)
         dec_outputs += self.pos_emb(dec_inputs_len)  # Adding positional encoding TODO: note
         dec_outputs = self.dropout_emb(dec_outputs)
 
-        dec_self_attn_mask = get_attn_pad_mask(dec_inputs, dec_inputs)
+        dec_self_attn_pad_mask = get_attn_pad_mask(dec_inputs, dec_inputs)
         dec_self_attn_subsequent_mask = get_attn_subsequent_mask(dec_inputs)
 
+        dec_self_attn_mask = torch.gt((dec_self_attn_pad_mask + dec_self_attn_subsequent_mask), 0)
+        dec_enc_attn_pad_mask = get_attn_pad_mask(dec_inputs, enc_inputs)
 
-
-        enc_self_attns = []
+        dec_self_attns, dec_enc_attns = [], []
         for layer in self.layers:
-            enc_outputs, enc_self_attn = layer(enc_outputs, dec_self_attn_mask)
+            dec_outputs, dec_self_attn, dec_enc_attn = layer(dec_outputs, enc_outputs,
+                                                             self_attn_mask=dec_self_attn_mask,
+                                                             enc_attn_mask=dec_enc_attn_pad_mask)
             if return_attn:
-                enc_self_attn.append(enc_self_attn)
+                dec_self_attns.append(dec_self_attn)
+                dec_enc_attns.append(dec_enc_attn)
 
-        return enc_outputs, enc_self_attns
+        return dec_outputs, dec_self_attns, dec_enc_attns
+
+
+class Transformer(nn.Module):
+    def __init__(self, opt):
+        super(Transformer, self).__init__()
+        self.encoder = Encoder(opt.n_layers, opt.d_k, opt.d_v, opt.d_model, opt.d_ff, opt.n_heads,
+                               opt.max_src_seq_len, opt.src_vocab_size, opt.dropout, opt.weighted_model)
+
+        self.decoder = Decoder(opt.n_layers, opt.d_k, opt.d_v, opt.d_model, opt.d_ff, opt.n_heads,
+                               opt.max_tgt_seq_len, opt.tgt_vocab_size, opt.dropout, opt.weighted_model)
+
+        self.tgt_proj = Linear(opt.d_model, opt.tgt_vocab_size, bias=False)
+        self.weighted_model = opt.weighted_model
+
+        if opt.share_proj_weight:
+            print('Sharing target embedding and projection..')
+            self.tgt_proj.weight = self.decoder.tgt_emb.weight
+
+        if opt.share_embs_weight:
+            print('Sharing source and target embedding..')
+            assert opt.src_vocab_size == opt.tgt_vocab_size, \
+                'To share word embeddings, the vocabulary size of src/tgt should be the same'
+            self.encoder.src_emb.weight = self.decoder.tgt_emb.weight
+
+    def trainable_params(self):
+        # Avoid updating the position encoding
+        params = filter(lambda p: p[1].requires_grad, self.named_parameters())
+        # Add a separate parameter group for the weighted_model
+        param_groups = []
+        base_params = {'params': [], 'type': 'base'}
+        weighted_params = {'params': [], 'type': 'weighted'}
+
+        for name, param in params:
+            if 'w_kp' in name or 'w_a' in name:
+                weighted_params['params'].append(param)
+            else:
+                base_params['params'].append(param)
+        param_groups.append(base_params)
+        param_groups.append(weighted_params)
+
+        return param_groups
+
+    def encode(self, enc_inputs, enc_inputs_len, return_attn=False):
+        return self.encoder(enc_inputs, enc_inputs_len, return_attn)
+
+    def decode(self, dec_inputs, dec_inputs_len, enc_inputs, enc_outputs, return_attn=False):
+        return self.decoder(dec_inputs, dec_inputs_len, enc_inputs, enc_outputs, return_attn)
+
+    def forward(self, enc_inputs, enc_inputs_len, dec_inputs, dec_inputs_len, return_attn=False):
+        enc_outputs, enc_self_attns = self.encoder(enc_inputs, enc_inputs_len, return_attn)
+        dec_outputs, dec_self_attns, dec_enc_attns = self.decoder(dec_inputs, dec_inputs_len, enc_inputs, enc_outputs,
+                                                                  return_attn)
+        dec_logits = self.tgt_proj(dec_outputs)
+
+        return dec_logits.view(-1, dec_logits.size(-1)), \
+               enc_self_attns, dec_self_attns, dec_enc_attns
+
+    def proj_grad(self):
+        if self.weighted_model:
+            for name, param in self.named_parameters():
+                if 'w_kp' in name or 'w_a' in name:
+                    param.data = proj_prob_simplex(param.data)
+        else:
+            pass
