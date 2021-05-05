@@ -29,7 +29,7 @@ BOS = extra_tokens.index(bos_token)
 EOS = extra_tokens.index(eos_token)
 
 
-def convert_text2id(examples, word2idx):
+def convert_text2idx(examples, word2idx):
     return [[word2idx[w] if w in word2idx else UNK
              for w in sent] for sent in examples]
 
