@@ -11,7 +11,7 @@ CIFAR10_CLASSES = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 DATA_MNIST_DIR = '~/workspace/data/mnist'
-MODEL_MNIST_DIR = '{}/model'.format(DATA_MNIST_DIR)
+MODEL_MNIST_DIR = '{}/models'.format(DATA_MNIST_DIR)
 
 DATA_FASHION_MNIST_DIR = '~/workspace/data/fashionmnist'
 
@@ -39,5 +39,7 @@ DATA_TXT_STOP_WORDS_DIR = '/home/sl/workspace/data/nlp/stopwords/stop_words.utf8
 # github 上的停用词
 DATA_TXT_STOP_WORDS_GITHUB_DIR = '/home/sl/workspace/data/nlp/stopwords'
 
+# THUCNews 路径
+DATA_THUCNEWS_DIR = '/home/sl/workspace/python/a2020/ml-learn/data/nlp/THUCNews'
 ############################################################################
 
