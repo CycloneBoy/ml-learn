@@ -41,5 +41,8 @@ DATA_TXT_STOP_WORDS_GITHUB_DIR = '/home/sl/workspace/data/nlp/stopwords'
 
 # THUCNews 路径
 DATA_THUCNEWS_DIR = '/home/sl/workspace/python/a2020/ml-learn/data/nlp/THUCNews'
+
+# sgns.sogou.char  词嵌入
+DATA_EMBEDDING_SOGOU_CHAR = "/home/sl/workspace/data/nlp/sgns.sogou.char"
 ############################################################################
 

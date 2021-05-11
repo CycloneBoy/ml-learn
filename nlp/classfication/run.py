@@ -29,10 +29,10 @@ if __name__ == '__main__':
         embedding = 'random'
     model_name = args.model  # 'TextRCNN'  # TextCNN, TextRNN, FastText, TextRCNN, TextRNN_Att, DPCNN, Transformer
     if model_name == 'FastText':
-        # todo:
-        pass
+        from utils_fasttext import build_dataset, build_iterator, get_time_dif
+        embedding = 'random'
     else:
-        from utils import build_dataset, build_iterator, get_time_dif, DATA_THUCNEWS_DIR
+        from utils import build_dataset, build_iterator, get_time_dif
 
     x = import_module('models.' + model_name)
     config = x.Config(dataset, embedding)
