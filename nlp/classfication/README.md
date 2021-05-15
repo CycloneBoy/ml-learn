@@ -18,4 +18,10 @@ tensorboard   --port 8123  --logdir=/home/sl/workspace/python/a2020/ml-learn/dat
  --model FastText \
  --embedding pre_trained
  
+ 
+/home/sl/app/anaconda3/bin/python \
+/home/sl/workspace/python/a2020/ml-learn/nlp/classfication/run.py \
+--model TextRNN \
+--embedding pre_trained
+ 
 ```

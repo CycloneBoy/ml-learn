@@ -46,6 +46,7 @@ def train(config, model, train_iter, dev_iter, test_iter):
         print('Epoch [{}/{}]'.format(epoch + 1, config.num_epochs))
         # scheduler.step() # 学习率衰减
         for i, (trains, labels) in enumerate(train_iter):
+            model.train()
             outputs = model(trains)
             model.zero_grad()
             loss = F.cross_entropy(outputs, labels)
@@ -54,8 +55,8 @@ def train(config, model, train_iter, dev_iter, test_iter):
             if total_batch % 100 == 0:
                 # 每多少轮输出在训练集和验证集上的效果
                 true = labels.data.cpu()
-                predic = torch.max(outputs.data, 1)[1].cpu()
-                train_acc = metrics.accuracy_score(true, predic)
+                predict = torch.max(outputs.data, 1)[1].cpu()
+                train_acc = metrics.accuracy_score(true, predict)
                 dev_acc, dev_loss = evaluate(config, model, dev_iter)
                 if dev_loss < dev_best_loss:
                     dev_best_loss = dev_loss
