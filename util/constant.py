@@ -44,5 +44,8 @@ DATA_THUCNEWS_DIR = '/home/sl/workspace/python/a2020/ml-learn/data/nlp/THUCNews'
 
 # sgns.sogou.char  词嵌入
 DATA_EMBEDDING_SOGOU_CHAR = "/home/sl/workspace/data/nlp/sgns.sogou.char"
+
+NLP_PRETRAIN_DIR = DATA_CACHE_DIR
+# BERT_BASE_CHINESE = '/home/sl/workspace/data/nlp/bert-base-chinese'
 ############################################################################
 

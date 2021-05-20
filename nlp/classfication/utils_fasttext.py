@@ -38,17 +38,27 @@ def build_vocab(file_path, tokenizer, max_size, min_freq):
     return vocab_dic
 
 
-def build_dataset(config, use_word):
-    if use_word:
-        tokenizer = lambda x: x.split(' ')  # 以空格隔开，word-level
-    else:
-        tokenizer = lambda x: [y for y in x]  # char-level
-    if os.path.exists(config.vocab_path):
-        vocab = pkl.load(open(config.vocab_path, 'rb'))
-    else:
-        vocab = build_vocab(config.train_path, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
-        pkl.dump(vocab, open(config.vocab_path, 'wb'))
-    print(f"Vocab size: {len(vocab)}")
+
+
+def build_dataset(config, use_word,is_pretain=False):
+    vocab = None
+    def init():
+        if use_word:
+            tokenizer = lambda x: x.split(' ')  # 以空格隔开，word-level
+        else:
+            tokenizer = lambda x: [y for y in x]  # char-level
+        if os.path.exists(config.vocab_path):
+            vocab = pkl.load(open(config.vocab_path, 'rb'))
+        else:
+            vocab = build_vocab(config.train_path, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
+            pkl.dump(vocab, open(config.vocab_path, 'wb'))
+        print(f"Vocab size: {len(vocab)}")
+        return  vocab
+
+    # 初始化
+    if not is_pretain:
+        vocab = init()
+
 
     def biGramHash(sequence, t, buckets):
         t1 = sequence[t - 1] if t - 1 >= 0 else 0
@@ -59,7 +69,7 @@ def build_dataset(config, use_word):
         t2 = sequence[t - 2] if t - 2 >= 0 else 0
         return (t2 * 14918087 * 18408749 + t1 * 14918087) % buckets
 
-    def load_dataset(path, pad_size=32):
+    def _load_dataset(path, pad_size=32):
         contents = []
         with open(path, 'r', encoding='UTF-8') as f:
             for line in tqdm(f):
@@ -92,6 +102,12 @@ def build_dataset(config, use_word):
                     # -----------------
                 contents.append((words_line, int(label), seq_len,bigram,trigram))
         return contents  # [([...], 0), ([...], 1), ...]
+
+
+    def load_dataset(path, pad_size=32,is_pretain=is_pretain):
+        pass
+
+
 
     train = load_dataset(config.train_path, config.pad_size)
     dev = load_dataset(config.dev_path, config.pad_size)
