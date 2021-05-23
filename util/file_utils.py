@@ -8,7 +8,7 @@
 文件处理的工具类
 
 '''
-from util.constant import DATA_TXT_NEWS_DIR, DATA_TXT_STOP_WORDS_GITHUB_DIR
+from util.constant import DATA_TXT_NEWS_DIR, DATA_TXT_STOP_WORDS_GITHUB_DIR, BILIBILI_VIDEO_IMAGE_DIR
 from util.logger_utils import get_log
 import os
 import glob
@@ -74,25 +74,33 @@ def test_get_one_news():
     print(corpus[sample_inx])
 
 
-def save_to_text(filename,content):
+def save_to_text(filename, content):
     """
     保存为文本
     :param filename:
     :param content:
     :return:
     """
-    with open(filename,'w',encoding='utf-8') as f:
+    with open(filename, 'w', encoding='utf-8') as f:
         f.writelines(content)
 
-def save_to_json(filename,content):
+
+def save_to_json(filename, content):
     """
     保存map 数据
     :param filename:
     :param maps:
     :return:
     """
-    with open(filename,'w',encoding='utf-8') as f:
-        json.dump(content,f,ensure_ascii=False)
+    with open(filename, 'w', encoding='utf-8') as f:
+        json.dump(content, f, ensure_ascii=False)
+
+
+def get_file_name_list(path, type="*.txt"):
+    """获取指定路径下的指定类型的所有文件"""
+    files = glob.glob(os.path.join(path, type))
+    return files
+
 
 if __name__ == '__main__':
     # test_get_one_news()
@@ -100,6 +108,11 @@ if __name__ == '__main__':
     # build_stop_words()
 
     filename = "../data/test/test1.txt"
-    save_to_text(filename,'hhhhhhhhhhhhhhhhhhhhhhhhhhhhh\nrrrr\n333333')
+    # save_to_text(filename, 'hhhhhhhhhhhhhhhhhhhhhhhhhhhhh\nrrrr\n333333')
+
+    file_list = get_file_name_list(BILIBILI_VIDEO_IMAGE_DIR,"*.mp4")
+    for name in file_list:
+        log.info("{}".format(name))
+    
 
     pass

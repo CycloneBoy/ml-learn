@@ -16,10 +16,10 @@ from util.constant import DATA_EMBEDDING_SOGOU_CHAR
 
 DATA_THUCNEWS_DIR = '/home/sl/workspace/python/a2020/ml-learn/data/nlp/THUCNews'
 
-
 # 词表长度限制
 MAX_VOCAB_SIZE = 10000
 UNK, PAD = '<UNK>', '<PAD>'  # 未知字，padding符号
+
 
 def build_vocab(file_path, tokenizer, max_size, min_freq):
     vocab_dic = {}
@@ -38,10 +38,9 @@ def build_vocab(file_path, tokenizer, max_size, min_freq):
     return vocab_dic
 
 
-
-
-def build_dataset(config, use_word,is_pretain=False):
+def build_dataset(config, use_word, is_pretain=False):
     vocab = None
+
     def init():
         if use_word:
             tokenizer = lambda x: x.split(' ')  # 以空格隔开，word-level
@@ -53,12 +52,11 @@ def build_dataset(config, use_word,is_pretain=False):
             vocab = build_vocab(config.train_path, tokenizer=tokenizer, max_size=MAX_VOCAB_SIZE, min_freq=1)
             pkl.dump(vocab, open(config.vocab_path, 'wb'))
         print(f"Vocab size: {len(vocab)}")
-        return  vocab
+        return vocab
 
     # 初始化
     if not is_pretain:
         vocab = init()
-
 
     def biGramHash(sequence, t, buckets):
         t1 = sequence[t - 1] if t - 1 >= 0 else 0
@@ -100,20 +98,16 @@ def build_dataset(config, use_word,is_pretain=False):
                     bigram.append(biGramHash(words_line, i, buckets))
                     trigram.append(triGramHash(words_line, i, buckets))
                     # -----------------
-                contents.append((words_line, int(label), seq_len,bigram,trigram))
+                contents.append((words_line, int(label), seq_len, bigram, trigram))
         return contents  # [([...], 0), ([...], 1), ...]
 
-
-    def load_dataset(path, pad_size=32,is_pretain=is_pretain):
+    def load_dataset(path, pad_size=32, is_pretain=is_pretain):
         pass
-
-
 
     train = load_dataset(config.train_path, config.pad_size)
     dev = load_dataset(config.dev_path, config.pad_size)
     test = load_dataset(config.test_path, config.pad_size)
     return vocab, train, dev, test
-
 
 
 class DatasetIterater(object):
@@ -139,7 +133,7 @@ class DatasetIterater(object):
 
         # pad前的长度(超过pad_size的设为pad_size)
         seq_len = torch.LongTensor([_[2] for _ in datas]).to(self.device)
-        return (x, seq_len,bigram,trigram), y
+        return (x, seq_len, bigram, trigram), y
 
     def __next__(self):
         if self.residue and self.index == self.n_batches:

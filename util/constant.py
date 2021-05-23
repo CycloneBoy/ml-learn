@@ -3,9 +3,11 @@
 # @File  : constant.py
 # @Author: sl
 # @Date  : 2020/9/17 - 下午10:17
-
+import os
 
 WORK_DIR = "/home/sl/workspace/python/a2020/ml-learn"
+
+LOG_DIR = os.path.join(WORK_DIR,"data/log")
 
 CIFAR10_CLASSES = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
@@ -28,6 +30,7 @@ MODEL_NLP_DIR = '/home/sl/workspace/data/nlp/model'
 
 # opencv 图片地址
 OPENCV_IMAGE_DIR = '/home/sl/data'
+BILIBILI_VIDEO_IMAGE_DIR = '/home/sl/data/bilibili'
 
 ############################################################################
 # 文本相关的数据路径
@@ -48,4 +51,7 @@ DATA_EMBEDDING_SOGOU_CHAR = "/home/sl/workspace/data/nlp/sgns.sogou.char"
 NLP_PRETRAIN_DIR = DATA_CACHE_DIR
 # BERT_BASE_CHINESE = '/home/sl/workspace/data/nlp/bert-base-chinese'
 ############################################################################
+
+
+
 
