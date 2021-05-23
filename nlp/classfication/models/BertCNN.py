@@ -1,8 +1,8 @@
 #!/user/bin/env python
 # -*- coding: utf-8 -*-
-# @File  : TextCNN.py
+# @File  : BertCNN.py
 # @Author: sl
-# @Date  : 2021/5/19 -  下午4:31
+# @Date  : 2021/5/23 -  下午22:38
 
 import torch
 import torch.nn as nn
@@ -13,17 +13,19 @@ from transformers import BertTokenizer, BertModel
 from util.nlp_pretrain import NlpPretrain
 
 
+
 class Config(object):
 
     def __init__(self, dataset):
-        self.model_name = 'bert'
+        self.model_name = 'BertCNN'
         self.train_path = dataset + '/data/train.txt'
         self.dev_path = dataset + '/data/dev.txt'
         self.test_path = dataset + '/data/test.txt'
         self.class_list = [x.strip() for x in open(
             dataset + '/data/class.txt', encoding='utf-8').readlines()]
-
         self.save_path = dataset + '/saved_dict/' + self.model_name + '.ckpt'
+        self.log_path = dataset + '/log/' + self.model_name
+
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.require_improvement = 1000
@@ -36,6 +38,10 @@ class Config(object):
         self.tokenizer = BertTokenizer.from_pretrained(self.bert_path)
         self.hidden_size = 768
 
+        self.filter_sizes = (2, 3, 4)  # 卷积核尺寸
+        self.num_filters = 256  # 卷积核数量(channels数)
+        self.dropout = 0.1
+
 
 class Model(nn.Module):
     def __init__(self, config):
@@ -43,11 +49,23 @@ class Model(nn.Module):
         self.bert = BertModel.from_pretrained(config.bert_path)
         for param in self.bert.parameters():
             param.requires_grad = True
-        self.fc = nn.Linear(config.hidden_size, config.num_classes)
+
+        self.convs = nn.ModuleList(
+            [nn.Conv2d(1, config.num_filters, (k, config.hidden_size)) for k in config.filter_sizes])
+        self.dropout = nn.Dropout(config.dropout)
+        self.fc_cnn = nn.Linear(config.num_filters * len(config.filter_sizes), config.num_classes)
+
+    def conv_and_pool(self, x, conv):
+        x = F.relu(conv(x)).squeeze(3)
+        x = F.max_pool1d(x, x.size(2)).squeeze(2)
+        return x
 
     def forward(self, x):
-        contex = x[0] # 输入的句子
+        context = x[0]  # 输入的句子
         mask = x[2]  # 对padding部分进行mask，和句子一个size，padding部分用0表示，如：[1, 1, 1, 1, 0, 0]
-        _,pooled = self.bert(contex,attention_mask=mask,output_all_encoded_layers=False)
-        out = self.fc(pooled)
+        encoder_out, text_cls = self.bert(context, attention_mask=mask, output_all_encoded_layers=False)
+        out = encoder_out.unsqueeze(1)
+        out = torch.cat([self.conv_and_pool(out, conv) for conv in self.convs], 1)
+        out = self.dropout(out)
+        out = self.fc_cnn(out)
         return out

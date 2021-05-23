@@ -1,13 +1,14 @@
 #!/user/bin/env python
 # -*- coding: utf-8 -*-
-# @File  : TextCNN.py
+# @File  : BertRCNN.py
 # @Author: sl
-# @Date  : 2021/5/19 -  下午4:31
+# @Date  : 2021/5/23 -  下午10:53
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+
 from transformers import BertTokenizer, BertModel
 
 from util.nlp_pretrain import NlpPretrain
@@ -16,7 +17,7 @@ from util.nlp_pretrain import NlpPretrain
 class Config(object):
 
     def __init__(self, dataset):
-        self.model_name = 'bert'
+        self.model_name = 'BertRCNN'
         self.train_path = dataset + '/data/train.txt'
         self.dev_path = dataset + '/data/dev.txt'
         self.test_path = dataset + '/data/test.txt'
@@ -24,6 +25,7 @@ class Config(object):
             dataset + '/data/class.txt', encoding='utf-8').readlines()]
 
         self.save_path = dataset + '/saved_dict/' + self.model_name + '.ckpt'
+        self.log_path = dataset + '/log/' + self.model_name
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.require_improvement = 1000
@@ -36,6 +38,16 @@ class Config(object):
         self.tokenizer = BertTokenizer.from_pretrained(self.bert_path)
         self.hidden_size = 768
 
+        self.dropout = 0.1
+        self.rnn_hidden = 256
+        self.num_layers = 1
+
+
+'''
+Recurrent Neural Network for Text 
+Classification with Multi-Task Learning
+'''
+
 
 class Model(nn.Module):
     def __init__(self, config):
@@ -43,11 +55,22 @@ class Model(nn.Module):
         self.bert = BertModel.from_pretrained(config.bert_path)
         for param in self.bert.parameters():
             param.requires_grad = True
-        self.fc = nn.Linear(config.hidden_size, config.num_classes)
+
+        self.lstm = nn.LSTM(config.hidden_size, config.rnn_hidden, config.num_layers,
+                            bidirectional=True, batch_first=True, dropout=config.dropout)
+        self.maxpool = nn.MaxPool1d(config.pad_size)
+        self.fc = nn.Linear(config.rnn_hidden * 2 + config.hidden_size, config.num_classes)
 
     def forward(self, x):
-        contex = x[0] # 输入的句子
+        context = x[0]  # 输入的句子
         mask = x[2]  # 对padding部分进行mask，和句子一个size，padding部分用0表示，如：[1, 1, 1, 1, 0, 0]
-        _,pooled = self.bert(contex,attention_mask=mask,output_all_encoded_layers=False)
-        out = self.fc(pooled)
+        encoder_out, text_cls = self.bert(context, attention_mask=mask, output_all_encoded_layers=False)
+        out, _ = self.lstm(encoder_out)
+
+        out = torch.cat((encoder_out, out), 2)
+        out = F.relu(out)
+        out = out.permute(0, 2, 1)
+        out = self.maxpool(out).sequence()
+        out = self.fc(out)
         return out
+
