@@ -24,7 +24,7 @@ class Config(object):
 
         self.save_path = dataset + '/saved_dict/' + self.model_name + '.ckpt'
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+        self.log_path = dataset + '/log/' + self.model_name
         self.require_improvement = 1000
         self.num_classes = len(self.class_list)  # 若超过1000batch效果还没提升，则提前结束训练
         self.num_epochs = 3

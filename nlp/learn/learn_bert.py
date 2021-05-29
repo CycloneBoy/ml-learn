@@ -9,17 +9,42 @@ from transformers.models.bert import BertModel
 
 from util.nlp_pretrain import NlpPretrain
 
-if __name__ == '__main__':
-    # unmasker = pipeline('fill-mask', model='bert-base-uncased')
-    # unmasker("Hello I'm a [MASK] model.")
 
+# padding符号, bert中综合信息符号
+PAD, CLS = '[PAD]', '[CLS]'
+
+
+def test_bert1():
+    global tokenizer, model, text
     tokenizer = BertTokenizer.from_pretrained(NlpPretrain.BERT_BASE_UNCASED.path)
     model = BertModel.from_pretrained(NlpPretrain.BERT_BASE_UNCASED.path)
-
     text = "Replace me by any text you'd like."
     encoded_input = tokenizer(text, return_tensors='pt')
     output = model(**encoded_input)
     print(output)
+
+
+if __name__ == '__main__':
+    # unmasker = pipeline('fill-mask', model='bert-base-uncased')
+    # unmasker("Hello I'm a [MASK] model.")
+
+    # test_bert1()
+
+    lin = "中华女子学院：本科层次仅1专业招男生	3"
+
+    content, label = lin.split('\t')
+
+    tokenizer = BertTokenizer.from_pretrained(NlpPretrain.BERT_BASE_UNCASED.path)
+    model = BertModel.from_pretrained(NlpPretrain.BERT_BASE_UNCASED.path)
+
+    token = tokenizer.tokenize(content)
+    print(token)
+    token = [CLS] + token
+    seq_len = len(token)
+    mask = []
+    token_ids = tokenizer.convert_tokens_to_ids(token)
+
+    print(token_ids)
 
     # BERT
     # tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=True, do_basic_tokenize=True)

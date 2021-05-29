@@ -27,7 +27,7 @@ def build_dataset(config):
                 token = [CLS] + token
                 seq_len = len(token)
                 mask = []
-                token_ids = config.tokenizer._convert_token_to_id(token)
+                token_ids = config.tokenizer.convert_tokens_to_ids(token)
 
                 if pad_size:
                     if len(token) < pad_size:

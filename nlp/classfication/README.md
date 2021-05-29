@@ -37,14 +37,28 @@ tensorboard   --port 8123  --logdir=/home/sl/workspace/python/a2020/ml-learn/dat
 --embedding pre_trained
 
 
-  /home/sl/app/anaconda3/bin/python \
+/home/sl/app/anaconda3/bin/python \
 /home/sl/workspace/python/a2020/ml-learn/nlp/classfication/run.py \
 --model bert 
 
 
-   /home/sl/app/anaconda3/bin/python \
+/home/sl/app/anaconda3/bin/python \
 /home/sl/workspace/python/a2020/ml-learn/nlp/classfication/run.py \
 --model BertRCNN 
+
+
+/home/sl/app/anaconda3/bin/python \
+/home/sl/workspace/python/a2020/ml-learn/nlp/classfication/run.py \
+--model BertCNN 
+ 
+/home/sl/app/anaconda3/bin/python \
+/home/sl/workspace/python/a2020/ml-learn/nlp/classfication/run.py \
+--model BertDPCNN 
+ 
+ 
+ /home/sl/app/anaconda3/bin/python \
+/home/sl/workspace/python/a2020/ml-learn/nlp/classfication/run.py \
+--model electra 
  
  
 ```
