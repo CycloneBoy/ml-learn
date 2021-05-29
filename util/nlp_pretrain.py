@@ -33,6 +33,8 @@ class NlpPretrain(Enum):
     ALBERT_CHINESE_TINY = (
         build_path('voidful/albert_chinese_tiny'), 'albert')
 
+    ERNIE = (build_path('ernie'), 'ernie')
+
     def __str__(self):
         return "{}:{}:{}".format(self.name, self.path, self.description)
 

@@ -1,5 +1,7 @@
 # 文本分类
 
+
+## 运行命令行
 ```shell
 
 # 执行命令 
@@ -61,4 +63,14 @@ tensorboard   --port 8123  --logdir=/home/sl/workspace/python/a2020/ml-learn/dat
 --model electra 
  
  
+ 
+
 ```
+
+ ## 此处存放ERNIE预训练模型：  
+pytorch_model.bin  
+bert_config.json  
+vocab.txt  
+
+## 下载地址：  
+http://image.nghuyong.top/ERNIE.zip  

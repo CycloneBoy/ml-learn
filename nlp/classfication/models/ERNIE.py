@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # @File  : TextCNN.py
 # @Author: sl
-# @Date  : 2021/5/19 -  下午4:31
+# @Date  : 2021/5/29  上午11:35
 
 import torch
 import torch.nn as nn
@@ -16,7 +16,7 @@ from util.nlp_pretrain import NlpPretrain
 class Config(object):
 
     def __init__(self, dataset):
-        self.model_name = 'bert'
+        self.model_name = 'ERNIE'
         self.train_path = dataset + '/data/train.txt'
         self.dev_path = dataset + '/data/dev.txt'
         self.test_path = dataset + '/data/test.txt'
@@ -32,9 +32,8 @@ class Config(object):
         self.batch_size = 128
         self.pad_size = 32
         self.learning_rate = 5e-5
-        self.bert_path = NlpPretrain.BERT_BASE_CHINESE.path
+        self.bert_path = NlpPretrain.ERNIE.path
         self.tokenizer = BertTokenizer.from_pretrained(self.bert_path)
-        self.model_config = BertConfig.from_pretrained( self.bert_path, output_hidden_states=True)
         self.hidden_size = 768
 
 
