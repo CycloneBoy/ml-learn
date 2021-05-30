@@ -8,7 +8,7 @@
 文件处理的工具类
 
 '''
-from util.constant import DATA_TXT_NEWS_DIR, DATA_TXT_STOP_WORDS_GITHUB_DIR, BILIBILI_VIDEO_IMAGE_DIR
+from util.constant import DATA_TXT_NEWS_DIR, DATA_TXT_STOP_WORDS_GITHUB_DIR, BILIBILI_VIDEO_IMAGE_DIR, DATA_HTML_DIR
 from util.logger_utils import get_log
 import os
 import glob
@@ -74,14 +74,15 @@ def test_get_one_news():
     print(corpus[sample_inx])
 
 
-def save_to_text(filename, content):
+def save_to_text(filename, content, mode='w'):
     """
     保存为文本
     :param filename:
     :param content:
     :return:
     """
-    with open(filename, 'w', encoding='utf-8') as f:
+    check_file_exists(filename)
+    with open(filename, mode, encoding='utf-8') as f:
         f.writelines(content)
 
 
@@ -92,14 +93,41 @@ def save_to_json(filename, content):
     :param maps:
     :return:
     """
+    check_file_exists(filename)
     with open(filename, 'w', encoding='utf-8') as f:
         json.dump(content, f, ensure_ascii=False)
+
+
+def load_to_json(filename):
+    """
+    加载 数据
+    :param filename:
+    :param maps:
+    :return:
+    """
+    with open(filename, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
 
 def get_file_name_list(path, type="*.txt"):
     """获取指定路径下的指定类型的所有文件"""
     files = glob.glob(os.path.join(path, type))
     return files
+
+
+def check_file_exists(filename, delete=False):
+    """检查文件是否存在"""
+    dir_name = os.path.dirname(filename)
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
+        log.info("文件夹不存在,创建目录:{}".format(dir_name))
+
+
+def read_to_text(path, encoding='utf-8'):
+    """读取txt 文件"""
+    with open(path, 'r', encoding=encoding) as f:
+        content = f.read()
+        return content
 
 
 if __name__ == '__main__':
@@ -110,9 +138,10 @@ if __name__ == '__main__':
     filename = "../data/test/test1.txt"
     # save_to_text(filename, 'hhhhhhhhhhhhhhhhhhhhhhhhhhhhh\nrrrr\n333333')
 
-    file_list = get_file_name_list(BILIBILI_VIDEO_IMAGE_DIR,"*.mp4")
-    for name in file_list:
-        log.info("{}".format(name))
-    
+    # file_list = get_file_name_list(BILIBILI_VIDEO_IMAGE_DIR, "*.mp4")
+    # for name in file_list:
+    #     log.info("{}".format(name))
 
+    filename = "{}/{}/{}_{}.html".format(DATA_HTML_DIR, "test", "test", 1)
+    check_file_exists(filename)
     pass

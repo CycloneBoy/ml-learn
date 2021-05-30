@@ -7,10 +7,10 @@ import os
 
 WORK_DIR = "/home/sl/workspace/python/a2020/ml-learn"
 
-LOG_DIR = os.path.join(WORK_DIR,"data/log")
+LOG_DIR = os.path.join(WORK_DIR, "data/log")
 
 CIFAR10_CLASSES = ('plane', 'car', 'bird', 'cat',
-           'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+                   'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
 DATA_MNIST_DIR = '~/workspace/data/mnist'
 MODEL_MNIST_DIR = '{}/models'.format(DATA_MNIST_DIR)
@@ -26,7 +26,6 @@ IMDB_DATA_DIR = '/home/sl/workspace/data/nlp/aclImdb'
 
 # NLP模型保存
 MODEL_NLP_DIR = '/home/sl/workspace/data/nlp/model'
-
 
 # opencv 图片地址
 OPENCV_IMAGE_DIR = '/home/sl/data'
@@ -52,6 +51,11 @@ NLP_PRETRAIN_DIR = DATA_CACHE_DIR
 # BERT_BASE_CHINESE = '/home/sl/workspace/data/nlp/bert-base-chinese'
 ############################################################################
 
+# 爬虫html页面
+DATA_HTML_DIR = os.path.join(WORK_DIR, "data/txt/html")
 
+# 爬虫问题保存地址
+DATA_QUESTION_DIR = os.path.join(WORK_DIR, "data/txt/result")
 
-
+# 爬虫问题保存地址 JSON
+DATA_JSON_DIR = os.path.join(WORK_DIR, "data/txt/json")
