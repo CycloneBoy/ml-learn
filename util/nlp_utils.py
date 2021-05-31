@@ -12,6 +12,7 @@ import pickle
 
 import jieba
 import jieba.posseg as psg
+import opencc
 
 import torch
 import torch.nn.functional as F
@@ -160,13 +161,22 @@ def word2features(sent, i):
     }
     return features
 
+
 def sent2features(sent):
     """
     抽取序列特征
     :param sent:
     :return:
     """
-    return [word2features(sent,i) for i in range(len(sent))]
+    return [word2features(sent, i) for i in range(len(sent))]
+
+
+def zh_convert(sentence, t2s=True):
+    """繁体转简体"""
+    converter = opencc.OpenCC('t2s.json')
+    res = converter.convert(sentence)
+    return res
+
 
 if __name__ == '__main__':
     words = stop_words()

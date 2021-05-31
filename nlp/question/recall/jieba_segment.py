@@ -11,6 +11,8 @@
 import jieba
 import codecs
 
+from nlp.question.data.model import QaModel
+from util.constant import TEST_QA_1
 from util.nlp_utils import stop_words
 
 
@@ -34,3 +36,24 @@ class Seg(object):
             results.append(seg)
 
         return results
+
+
+if __name__ == '__main__':
+
+    qa = QaModel(TEST_QA_1)
+    print(qa)
+
+    seg = Seg()
+    cut1 = seg.cut(qa.question)
+    print(cut1)
+
+    cut2 = seg.cut(qa.answer)
+    print(cut2)
+
+    cut1 = seg.cut(qa.question,for_search=True)
+    print(cut1)
+
+    cut2 = seg.cut(qa.answer,for_search=True)
+    print(cut2)
+    pass
+
