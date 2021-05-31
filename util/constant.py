@@ -59,3 +59,8 @@ DATA_QUESTION_DIR = os.path.join(WORK_DIR, "data/txt/result")
 
 # 爬虫问题保存地址 JSON
 DATA_JSON_DIR = os.path.join(WORK_DIR, "data/txt/json")
+
+# 问答
+DATA_QUESTION_ANSWER_DIR = os.path.join(DATA_CACHE_DIR, "question/result")
+
+QA_DELIMITER = "|"

@@ -8,7 +8,8 @@
 文件处理的工具类
 
 '''
-from util.constant import DATA_TXT_NEWS_DIR, DATA_TXT_STOP_WORDS_GITHUB_DIR, BILIBILI_VIDEO_IMAGE_DIR, DATA_HTML_DIR
+from util.constant import DATA_TXT_NEWS_DIR, DATA_TXT_STOP_WORDS_GITHUB_DIR, BILIBILI_VIDEO_IMAGE_DIR, DATA_HTML_DIR, \
+    DATA_QUESTION_ANSWER_DIR, DATA_CACHE_DIR
 from util.logger_utils import get_log
 import os
 import glob
@@ -130,6 +131,32 @@ def read_to_text(path, encoding='utf-8'):
         return content
 
 
+def list_file(file_dir, endswith=""):
+    """读取文件列表"""
+    file_list = []
+    for file in os.listdir(file_dir):
+        if file.endswith(endswith):
+            file_list.append(file)
+
+    return file_list
+
+
+def build_qa_dataset(file_dir):
+    """读取问答数据集"""
+    file_list = list_file(file_dir, ".txt")
+
+    filename = os.path.join(DATA_CACHE_DIR, "question/travel_question_63752.txt")
+    total = 0
+    for file in file_list:
+        total_line = int(file[file.find("_") + 1:file.find(".")])
+        total += total_line
+        path = os.path.join(file_dir, file)
+        contents = read_to_text(path)
+        save_to_text(filename, contents, 'a')
+
+    log.info("文件数：{}，总共问题数量：{}".format(len(file_list), total))
+
+
 if __name__ == '__main__':
     # test_get_one_news()
 
@@ -143,5 +170,11 @@ if __name__ == '__main__':
     #     log.info("{}".format(name))
 
     filename = "{}/{}/{}_{}.html".format(DATA_HTML_DIR, "test", "test", 1)
-    check_file_exists(filename)
+    # check_file_exists(filename)
+
+    build_qa_dataset(DATA_QUESTION_ANSWER_DIR)
+
+    # file = "巴黎_2000.txt"
+    # total_line = file[file.find("_") + 1:file.find(".")]
+    # print(total_line)
     pass
