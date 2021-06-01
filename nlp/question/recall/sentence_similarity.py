@@ -6,13 +6,17 @@
 
 import numpy as np
 from gensim import corpora, models, similarities
-from .sentence import Sentence
+
+
 from collections import defaultdict
+
+from nlp.question.recall.sentence import Sentence
+from util.time_utils import time_cost
 
 
 class SentenceSimilarity(object):
 
-    def __iter__(self, seg):
+    def __init__(self, seg):
         self.seg = seg
         self.sentences = []
         self.texts = None
@@ -20,7 +24,7 @@ class SentenceSimilarity(object):
         self.texts = None
 
     def set_sentences(self, sentences):
-        for i in range(0, sentences):
+        for i in range(0, len(sentences)):
             self.sentences.append(Sentence(sentences[i], self.seg, i))
 
     def get_cut_sentences(self):
@@ -43,6 +47,7 @@ class SentenceSimilarity(object):
         self.dictionary = corpora.Dictionary(self.texts)
         self.corpus_simple = [self.dictionary.doc2bow(text) for text in self.texts]
 
+    @time_cost
     def build_Model(self, type="tfidf"):
         self.simple_model()
 
@@ -99,7 +104,8 @@ class SentenceSimilarity(object):
 
         return sentence
 
-    def similarity_k(self, sentence):
+    @time_cost
+    def similarity_k(self, sentence, k):
         """求K个最相似的句子"""
         sentence_vec = self.sentence2vec(sentence)
 
@@ -111,5 +117,3 @@ class SentenceSimilarity(object):
         return indexes, scores
 
 
-if __name__ == '__main__':
-    pass

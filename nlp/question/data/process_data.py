@@ -16,7 +16,7 @@ import opencc
 
 from basis.utils.random_user_agent import RandomUserAgentMiddleware
 from nlp.question.data.model import QaModel
-from util.constant import DATA_HTML_DIR, DATA_QUESTION_DIR, DATA_CACHE_DIR
+from util.constant import DATA_HTML_DIR, DATA_QUESTION_DIR, DATA_CACHE_DIR, TEST_QA_LIST_10
 from util.file_utils import save_to_text, read_to_text, check_file_exists
 from util.logger_utils import get_log
 from util.nlp_utils import sent2features, extend_maps, process_data_for_lstmcrf
@@ -40,7 +40,7 @@ def clean_text(sentence):
 
 def read_data():
     """读取数据"""
-    filename = os.path.join(DATA_CACHE_DIR, "question/travel_question_64102.txt")
+    filename = os.path.join(DATA_CACHE_DIR, "question/travel_question_filter_63752.txt")
     dataset = read_to_text(filename)
     split_data = dataset.split("\n")
     result_list = []
@@ -54,20 +54,34 @@ def read_data():
         elif qa.question is None:
             continue
         else:
+            question_set.add(qa.question)
             result_list.append(clean_text(row))
 
     log.info("重复数量:{}".format(duplicate_number))
 
     filename = os.path.join(DATA_CACHE_DIR, "question/travel_question_filter_{}.txt".format(len(result_list)))
+    log.info("保存名称:{}".format(filename))
+
     save_to_text(filename, "\n".join(result_list))
 
 
-@time_cost
-def load_question():
-    """加载数据"""
-    filename = os.path.join(DATA_CACHE_DIR, "question/travel_question_filter_63752.txt")
+def read_question(is_test=False):
+    """读取文本"""
+
+    if is_test:
+        # 加载测试数据
+        log.info("加载测试数据")
+        return TEST_QA_LIST_10
+    filename = os.path.join(DATA_CACHE_DIR, "question/travel_question_filter_59719.txt")
     dataset = read_to_text(filename)
     split_data = dataset.split("\n")
+    return split_data
+
+
+@time_cost
+def load_question(is_test=False):
+    """加载数据"""
+    split_data = read_question(is_test)
     result_list = []
 
     for row in split_data:
@@ -83,6 +97,9 @@ def load_question():
 
 
 if __name__ == '__main__':
-    # read_data()
-    load_question()
+    read_data()
+    # qa_list = load_question(is_test=True)
+
+
+
     pass
