@@ -41,7 +41,7 @@ def download(urls, directory=BILIBILI_VIDEO_IMAGE_DIR):
     log.info("完成下载:{}".format(urls))
 
 
-def get_need_download(path=BILIBILI_VIDEO_IMAGE_DIR, start_index=88, end_index=161):
+def get_need_download(path=BILIBILI_VIDEO_IMAGE_DIR, start_index=59, end_index=129):
     file_list = get_file_name_list(path, "*.mp4")
     exist_list = []
     for name in file_list:
@@ -53,6 +53,8 @@ def get_need_download(path=BILIBILI_VIDEO_IMAGE_DIR, start_index=88, end_index=1
     need_list = [i for i in range(start_index, end_index + 1) if i not in set(exist_list)]
 
     log.info("已经下载:{} , 还需要下载:{}".format(len(exist_list), len(need_list)))
+    log.info("需要下载列表:{}".format(", ".join([ str(i) for i in need_list])))
+
 
     return need_list
 
@@ -61,6 +63,7 @@ if __name__ == '__main__':
 
     url = 'https://www.bilibili.com/video/BV1Zt4y1a7Xr?from=search&seid=755424765684966116'
     url_t = "https://www.bilibili.com/video/BV1Zt4y1a7Xr?p="
+    url_t = "https://www.bilibili.com/video/BV1Nv41177cA?p="
 
     # sys.argv = ['you-get', '-o', BILIBILI_VIDEO_IMAGE_DIR, url, '-l']
     # you_get.main()
@@ -78,7 +81,7 @@ if __name__ == '__main__':
     # index = re.findall(r"P(.+?)\.", name)
     # log.info("提取:{}".format(index))
 
-    need_list = get_need_download()
+    need_list = get_need_download(start_index=55, end_index=128)
     for i in need_list:
         log.info("{}".format(i))
         url = url_t + str(i)

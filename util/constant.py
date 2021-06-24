@@ -29,7 +29,8 @@ MODEL_NLP_DIR = '/home/sl/workspace/data/nlp/model'
 
 # opencv 图片地址
 OPENCV_IMAGE_DIR = '/home/sl/data'
-BILIBILI_VIDEO_IMAGE_DIR = '/home/sl/data/bilibili'
+# BILIBILI_VIDEO_IMAGE_DIR = '/home/sl/data/bilibili'
+BILIBILI_VIDEO_IMAGE_DIR = '/media/sl/Windows/share'
 
 ############################################################################
 # 文本相关的数据路径
