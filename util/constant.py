@@ -83,3 +83,7 @@ TEST_QA_10 = "866|求助，圣诞节的时候国内哪里好玩啊？|哈尔滨�
 
 TEST_QA_LIST_10 = [TEST_QA_1, TEST_QA_2, TEST_QA_3, TEST_QA_4, TEST_QA_5, TEST_QA_6, TEST_QA_7, TEST_QA_8, TEST_QA_9,
                 TEST_QA_10]
+
+
+# ML
+ML_DATA_DIR = os.path.join(WORK_DIR, "data/ml")
