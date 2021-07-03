@@ -14,10 +14,12 @@ import jieba
 import jieba.posseg as psg
 import opencc
 
+import re
 import torch
 import torch.nn.functional as F
+from sklearn.feature_extraction.text import TfidfVectorizer
 
-from util.constant import DATA_TXT_STOP_WORDS_DIR
+from util.constant import DATA_TXT_STOP_WORDS_DIR, TEST_SUMMARY_1
 
 
 def stop_words(path=DATA_TXT_STOP_WORDS_DIR):
@@ -178,8 +180,100 @@ def zh_convert(sentence, t2s=True):
     return res
 
 
+def cut_sentence(sentence):
+    """
+    分句
+    :param sentence:
+    :return:
+    """
+    match = '[.。？！?!\n\r]'
+    match1 = '[，:;!?。：；？！\n\r]'
+    res_sen = re.compile(match)  # .不加是因为不确定.是小数还是英文句号(中文省略号......)
+    sentences = res_sen.split(sentence)
+    sen_cuts = []
+    for sen in sentences:
+        if sen and str(sen).strip():
+            sen_cuts.append(sen)
+    return sen_cuts
+
+
+def extract_chinese(text):
+    """
+     只提取出中文、字母和数字
+    :param text:
+    :return:
+    """
+    chinese_extract = ''.join(re.findall(u"([\u4e00-\u9fa5A-Za-z0-9@. ])", text))
+    return chinese_extract
+
+
+def remove_urls(text):
+    """
+     删除https/http等无用url
+    :param text:
+    :return:
+    """
+    text_remove_url = re.sub(r'(全文：)?(https|http)?:\/\/(\w|\.|\/|\?|\=|\&|\%)*\b',
+                             '', text, flags=re.MULTILINE)
+    return text_remove_url
+
+
+def gram_uni_bi_tri(text):
+    """
+      获取文本的unigram, trugram, bigram等特征
+    :param text:
+    :return:
+    """
+    len_text = len(text)
+    gram_uni = []
+    gram_bi = []
+    gram_tri = []
+    for i in range(len_text):
+        if i + 3 <= len_text:
+            gram_uni.append(text[i])
+            gram_bi.append(text[i:i + 2])
+            gram_tri.append(text[i:i + 3])
+        elif i + 2 <= len_text:
+            gram_uni.append(text[i])
+            gram_bi.append(text[i:i + 2])
+        elif i + 1 <= len_text:
+            gram_uni.append(text[i])
+        else:
+            break
+    return gram_uni, gram_bi, gram_tri
+
+
+def tfidf_fit(sentences):
+    """ tfidf相似度"""
+
+    model = TfidfVectorizer(ngram_range=(1, 2),
+                            stop_words=stop_words(),
+                            max_features=10000,
+                            token_pattern=r"(?u)\b\w+\b",  # 过滤停用词
+                            min_df=1, max_df=0.9,
+                            use_idf=True, smooth_idf=True, sublinear_tf=True)
+    matrix = model.fit_transform(sentences)
+    return matrix
+
+
 if __name__ == '__main__':
-    words = stop_words()
-    print("停用词数量:%d" % len(words))
-    print('/ '.join(words[1000:1200]))
+    # words = stop_words()
+    # print("停用词数量:%d" % len(words))
+    # print('/ '.join(words[1000:1200]))
+    line = 'CNN在图像领域的成功也表明，深度卷积神经网络能够提取更加复杂和高级的特征，尤其是深度残差网络(ResNet)等的流行。那么，深度卷积神经网络在自然语言处理NLP领域，究竟有没有优势呢?'
+    res = list(jieba.cut(line))
+    print(list(jieba.cut(line)))
+    print(list(jieba.cut(line, cut_all=False, HMM=True)))
+    print(list(jieba.cut(line, cut_all=False, HMM=False)))
+
+    line2 = TEST_SUMMARY_1[1]
+    print(cut_sentence(line))
+    print(cut_sentence(line2))
+
+    grams = gram_uni_bi_tri(line2)
+
+    print(grams[0])
+    print(grams[1])
+    print(grams[2])
+
     pass

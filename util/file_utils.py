@@ -8,6 +8,8 @@
 文件处理的工具类
 
 '''
+import pandas as pd
+
 from util.constant import DATA_TXT_NEWS_DIR, DATA_TXT_STOP_WORDS_GITHUB_DIR, BILIBILI_VIDEO_IMAGE_DIR, DATA_HTML_DIR, \
     DATA_QUESTION_ANSWER_DIR, DATA_CACHE_DIR
 from util.logger_utils import get_log
@@ -15,6 +17,8 @@ import os
 import glob
 import random
 import json
+
+from util.nlp_utils import extract_chinese
 
 log = get_log("{}.log".format(str(os.path.split(__file__)[1]).replace(".py", '')))
 
@@ -130,6 +134,17 @@ def read_to_text(path, encoding='utf-8'):
         content = f.read()
         return content
 
+def read_to_text_list(path, encoding='utf-8'):
+    """
+    读取txt文件,默认utf8格式,
+    :param path:
+    :param encoding:
+    :return:
+    """
+    list_line = []
+    with open(path, 'r', encoding=encoding) as f:
+        list_line = f.readlines()
+        return list_line
 
 def list_file(file_dir, endswith=""):
     """读取文件列表"""
@@ -139,6 +154,34 @@ def list_file(file_dir, endswith=""):
             file_list.append(file)
 
     return file_list
+
+
+def delete_file(path):
+    """
+    删除一个目录下的所有文件
+    :param path:
+    :return:
+    """
+
+    for i in os.listdir(path):
+        path_children = os.path.join(path,i)
+        if os.path.isfile(path_children):
+            os.remove(path_children)
+        else:# 递归, 删除目录下的所有文件
+            delete_file(path_children)
+
+def read_and_process(path):
+    """
+      读取文本数据并
+    :param path:
+    :return:
+    """
+    data = pd.read_csv(path)
+    ques = data["ques"].values.tolist()
+    labels = data["label"].values.tolist()
+    line_x = [extract_chinese(str(line).upper()) for line in labels]
+    line_y = [extract_chinese(str(line).upper()) for line in ques]
+    return line_x, line_y
 
 
 def build_qa_dataset(file_dir):
