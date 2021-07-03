@@ -26,3 +26,6 @@
 
 /nlp/transformer/.ipynb_checkpoints/
 /.idea
+*.model
+*.test
+*.train
