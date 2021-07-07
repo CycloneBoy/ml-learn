@@ -5,6 +5,8 @@
 # @Date  : 2021/7/3 -  下午11:00
 
 from . import util
+from .Segmentation import Segmentation
+
 
 class TextRank4Sentence(object):
     def __init__(self, stop_words_file=None,
@@ -21,3 +23,42 @@ class TextRank4Sentence(object):
         self.words_no_stop_words     --  去掉words_no_filter中的停止词而得到的两级列表。
         self.words_all_filters       --  保留words_no_stop_words中指定词性的单词而得到的两级列表。
         """
+        self.seg = Segmentation(stop_words_file=stop_words_file,
+                                allow_speech_tags=allow_speech_tags,
+                                delimiters=delimiters)
+
+        self.sentences = None
+        self.words_no_filter = None  # 2维列表
+        self.words_no_stop_words = None
+        self.words_all_filters = None
+
+        self.key_sentences = None
+
+    def analyze(self, text, lower=False,
+                source='no_stop_words',
+                sim_func=util.get_similarity,
+                pagerank_config={'alpha': 0.85, }):
+        """
+        Keyword arguments:
+        text                 --  文本内容，字符串。
+        lower                --  是否将文本转换为小写。默认为False。
+        source               --  选择使用words_no_filter, words_no_stop_words, words_all_filters中的哪一个来生成句子之间的相似度。
+                                 默认值为`'all_filters'`，可选值为`'no_filter', 'no_stop_words', 'all_filters'`。
+        sim_func             --  指定计算句子相似度的函数。
+        """
+
+        self.key_sentences = []
+
+        result = self.seg.segment(text=text, lower=lower)
+        self.sentences = result.sentences
+        self.words_no_filter = result.words_no_filter
+        self.words_no_stop_words = result.words_no_stop_words
+        self.words_all_filters = result.words_all_filters
+
+        options = ['no_filter', 'no_stop_words', 'all_filters']
+        if source in options:
+            _source = result['words_'+source]
+        else:
+            _source = result['words_no_stop_words']
+
+        # self.key_sentences = util.

@@ -17,6 +17,7 @@ text_type = str
 string_types = (str,)
 xrange = range
 
+
 def as_text(v):
     """生成unicode字符串"""
     if v is None:
@@ -35,6 +36,7 @@ def is_text(v):
 
 __DEBUG = None
 
+
 def debug(*args):
     global __DEBUG
     if __DEBUG is None:
@@ -46,11 +48,30 @@ def debug(*args):
         except:
             __DEBUG = False
     if __DEBUG:
-        print( ' '.join([str(arg) for arg in args]) )
+        print(' '.join([str(arg) for arg in args]))
 
 
 class AttrDict(dict):
     """Dict that can get attribute by dot"""
+
     def __init__(self, *args, **kwargs):
         super(AttrDict, self).__init__(*args, **kwargs)
         self.__dict__ = self
+
+
+def combine(word_list, window=2):
+    """构造在window下的单词组合，用来构造单词之间的边。
+
+    Keyword arguments:
+    word_list  --  list of str, 由单词组成的列表。
+    windows    --  int, 窗口大小。
+    """
+    if window < 2:
+        window = 2
+    for x in xrange(1, window):
+        if x >= len(word_list):
+            break
+        word_list2 = word_list[x:]
+        res = zip(word_list, word_list2)
+        for r in res:
+            yield r
