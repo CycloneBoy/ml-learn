@@ -29,3 +29,7 @@
 *.model
 *.test
 *.train
+*.buffer
+
+/ml/xgboost/.ipynb_checkpoints
+
