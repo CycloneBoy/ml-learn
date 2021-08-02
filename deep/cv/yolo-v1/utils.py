@@ -1,14 +1,15 @@
 #!/user/bin/env python
 # -*- coding: utf-8 -*-
-# @File  : utils.py
+# @File  : function.py
 # @Author: sl
 # @Date  : 2021/7/25 -  下午5:47
 
-import torch
 from collections import Counter
-import numpy as np
-import matplotlib.pyplot as plt
+
 import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 
 
 def intersection_over_union(boxes_preds, boxes_labels, box_format='midpoint'):

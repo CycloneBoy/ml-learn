@@ -1,23 +1,22 @@
 #!/user/bin/env python
 # -*- coding: utf-8 -*-
-# @File  : utils.py
+# @File  : function.py
 # @Author: sl
 # @Date  : 2021/5/9 -  下午5:06
 
 import os
-import torch
-import numpy as np
 import pickle as pkl
-from tqdm import tqdm
 import time
 from datetime import timedelta
 
+import numpy as np
+import torch
+from tqdm import tqdm
 
 # THUCNews 路径
 from util.constant import DATA_EMBEDDING_SOGOU_CHAR
 
 DATA_THUCNEWS_DIR = '/home/sl/workspace/python/a2020/ml-learn/data/nlp/THUCNews'
-
 
 # 词表长度限制
 MAX_VOCAB_SIZE = 10000
