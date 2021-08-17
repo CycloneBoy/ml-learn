@@ -3,15 +3,24 @@
 # @File  : train_eval.py
 # @Author: sl
 # @Date  : 2021/5/9 -  下午9:09
+
+import time
+from datetime import timedelta
+
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn import metrics
-import time
-from utils import get_time_dif
 from tensorboardX import SummaryWriter
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
+
+
+def get_time_dif(start_time):
+    """获取已使用时间"""
+    end_time = time.time()
+    time_dif = end_time - start_time
+    return timedelta(seconds=int(round(time_dif)))
 
 
 # 权重初始化，默认xavier
@@ -100,10 +109,15 @@ def train_bert(config, model, train_iter, dev_iter, test_iter):
         {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0},
     ]
 
-    optimizer = AdamW(params=optimizer_group_parameters,
-                      lr=config.learning_rate,correct_bias=False)
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=100,
-                                                num_training_steps=len(train_iter) * config.num_epochs)  # PyTorch scheduler
+    max_grad_norm = 1.0
+    warmup = 0.05
+    num_training_steps = len(train_iter) * config.num_epochs
+    num_warmup_steps = num_training_steps * 0.05
+    warmup_proportion = float(num_warmup_steps) / float(num_training_steps)  # 0.1
+
+    optimizer = AdamW(model.parameters(), lr=config.learning_rate, correct_bias=False)
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=num_warmup_steps,
+                                                num_training_steps=num_training_steps)  # PyTorch scheduler
 
     # 学习率指数衰减，每次epoch：学习率 = gamma * 学习率
     total_batch = 0  # 记录进行到多少batch
@@ -120,6 +134,8 @@ def train_bert(config, model, train_iter, dev_iter, test_iter):
             model.zero_grad()
             loss = F.cross_entropy(outputs, labels)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)  # 梯度裁剪不再在AdamW中了(因此你可以毫无问题地使用放大器)
+
             optimizer.step()
             scheduler.step()  # 学习率衰减
             if total_batch % 100 == 0:

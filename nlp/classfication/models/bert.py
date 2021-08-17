@@ -6,8 +6,6 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-import numpy as np
 from transformers import BertTokenizer, BertModel, BertConfig
 
 from util.nlp_pretrain import NlpPretrain
@@ -34,21 +32,21 @@ class Config(object):
         self.learning_rate = 5e-5
         self.bert_path = NlpPretrain.BERT_BASE_CHINESE.path
         self.tokenizer = BertTokenizer.from_pretrained(self.bert_path)
-        self.model_config = BertConfig.from_pretrained( self.bert_path, output_hidden_states=True)
+        self.model_config = BertConfig.from_pretrained(self.bert_path, output_hidden_states=True)
         self.hidden_size = 768
 
 
 class Model(nn.Module):
     def __init__(self, config):
         super(Model, self).__init__()
-        self.bert = BertModel.from_pretrained(config.bert_path)
+        self.bert = BertModel.from_pretrained(config.bert_path, config=config.model_config)
         for param in self.bert.parameters():
             param.requires_grad = True
         self.fc = nn.Linear(config.hidden_size, config.num_classes)
 
     def forward(self, x):
-        context = x[0] # 输入的句子
+        context = x[0]  # 输入的句子
         mask = x[2]  # 对padding部分进行mask，和句子一个size，padding部分用0表示，如：[1, 1, 1, 1, 0, 0]
-        _,pooled = self.bert(context,attention_mask=mask,output_hidden_states=False,return_dict=False)
-        out = self.fc(pooled)
+        bert_output = self.bert(context, attention_mask=mask)
+        out = self.fc(bert_output.pooler_output)
         return out
