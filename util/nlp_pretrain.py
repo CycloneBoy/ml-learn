@@ -21,8 +21,8 @@ class NlpPretrain(Enum):
 
     BERT_BASE_UNCASED = (build_path('bert-base-uncased'), 'bert')
     BERT_BASE_CHINESE = (build_path('bert-base-chinese'), 'bert')
-    BERT_CHINESE_WWM = (build_path('bert-chinese-wwm'), 'bert-wwm')
-    BERT_CHINESE_WWM_EXT = (build_path('bert-chinese-wwm-ext'), 'bert-wwm')
+    BERT_CHINESE_WWM = (build_path('hfl/chinese-bert-wwm'), 'bert-wwm')
+    BERT_CHINESE_WWM_EXT = (build_path('hfl/chinese-bert-wwm-ext'), 'bert-wwm')
     ROBERTA_CHINESE_WWM_EXT_PYTORCH = (build_path('chinese_roberta_wwm_ext_pytorch'), 'roberta')
     ROBERTA_CHINESE_WWM_LARGE_EXT_PYTORCH = (
         build_path('chinese_roberta_wwm_large_ext_pytorch'), 'roberta')

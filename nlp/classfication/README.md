@@ -25,6 +25,45 @@ bert_DPCNN	94.47%	bert + DPCNN
 
 ```
 
+### model
+
+```text
+使用Huggingface-Transformers
+依托于Huggingface-Transformers 2.2.2，可轻松调用以上模型。
+
+tokenizer = BertTokenizer.from_pretrained("MODEL_NAME")
+model = BertModel.from_pretrained("MODEL_NAME")
+注意：本目录中的所有模型均使用BertTokenizer以及BertModel加载，请勿使用RobertaTokenizer/RobertaModel！
+
+其中MODEL_NAME对应列表如下：
+
+模型名	MODEL_NAME
+RoBERTa-wwm-ext-large	hfl/chinese-roberta-wwm-ext-large
+RoBERTa-wwm-ext	hfl/chinese-roberta-wwm-ext
+BERT-wwm-ext	hfl/chinese-bert-wwm-ext
+BERT-wwm	hfl/chinese-bert-wwm
+RBT3	hfl/rbt3
+RBTL3	hfl/rbtl3
+
+
+[1] WWM = Whole Word Masking
+[2] ext = extended data
+[3] TPU Pod v3-32 (512G HBM)等价于4个TPU v3 (128G HBM)
+[4] ~BERT表示继承谷歌原版中文BERT的属性
+
+篇章级文本分类：THUCNews
+篇章级文本分类任务我们选用了由清华大学自然语言处理实验室发布的新闻数据集THUCNews。 我们采用的是其中一个子集，需要将新闻分成10个类别中的一个。 评测指标为：Accuracy
+
+模型	开发集	测试集
+BERT	97.7 (97.4)	97.8 (97.6)
+ERNIE	97.6 (97.3)	97.5 (97.3)
+BERT-wwm	98.0 (97.6)	97.8 (97.6)
+BERT-wwm-ext	97.7 (97.5)	97.7 (97.5)
+RoBERTa-wwm-ext	98.3 (97.9)	97.7 (97.5)
+RoBERTa-wwm-ext-large	98.3 (97.7)	97.8 (97.6)
+
+```
+
 ## 运行命令行
 
 ```shell

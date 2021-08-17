@@ -54,6 +54,9 @@ def train(config, model, train_iter, dev_iter, test_iter):
     last_improve = 0  # 记录上次验证集loss下降的batch数
     flag = False  # 记录是否很久没有效果提升
     writer = SummaryWriter(log_dir=config.log_path + '/' + time.strftime('%m-%d_%H.%M', time.localtime()))
+
+    (one_trains, one_labels) = train_iter[0]
+    writer.add_graph(model, input_to_model=one_trains)
     for epoch in range(config.num_epochs):
         print('Epoch [{}/{}]'.format(epoch + 1, config.num_epochs))
         # scheduler.step() # 学习率衰减
@@ -66,9 +69,9 @@ def train(config, model, train_iter, dev_iter, test_iter):
             optimizer.step()
             if total_batch % 100 == 0:
                 # 每多少轮输出在训练集和验证集上的效果
-                true = labels.data.cpu()
+                target_label = labels.data.cpu()
                 predict = torch.max(outputs.data, 1)[1].cpu()
-                train_acc = metrics.accuracy_score(true, predict)
+                train_acc = metrics.accuracy_score(target_label, predict)
                 dev_acc, dev_loss = evaluate(config, model, dev_iter)
                 if dev_loss < dev_best_loss:
                     dev_best_loss = dev_loss
@@ -93,32 +96,25 @@ def train(config, model, train_iter, dev_iter, test_iter):
                 print("No optimization for a long time, auto-stopping...")
                 flag = True
                 break
-            if flag:
-                break
-        writer.close()
-        test(config, model, test_iter)
+        if flag:
+            break
+    writer.close()
+    test(config, model, test_iter)
 
 
 def train_bert(config, model, train_iter, dev_iter, test_iter):
     start_time = time.time()
     model.train()
-    param_optimizer = list(model.named_parameters())
-    no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-    optimizer_group_parameters = [
-        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0},
-    ]
 
     max_grad_norm = 1.0
     warmup = 0.05
     num_training_steps = len(train_iter) * config.num_epochs
-    num_warmup_steps = num_training_steps * 0.05
-    warmup_proportion = float(num_warmup_steps) / float(num_training_steps)  # 0.1
+    num_warmup_steps = num_training_steps * warmup
 
     optimizer = AdamW(model.parameters(), lr=config.learning_rate, correct_bias=False)
+    # PyTorch scheduler
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=num_warmup_steps,
-                                                num_training_steps=num_training_steps)  # PyTorch scheduler
-
+                                                num_training_steps=num_training_steps)
     # 学习率指数衰减，每次epoch：学习率 = gamma * 学习率
     total_batch = 0  # 记录进行到多少batch
     dev_best_loss = float('inf')
@@ -134,7 +130,8 @@ def train_bert(config, model, train_iter, dev_iter, test_iter):
             model.zero_grad()
             loss = F.cross_entropy(outputs, labels)
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)  # 梯度裁剪不再在AdamW中了(因此你可以毫无问题地使用放大器)
+            # 梯度裁剪不再在AdamW中了(因此你可以毫无问题地使用放大器)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)
 
             optimizer.step()
             scheduler.step()  # 学习率衰减
@@ -167,13 +164,14 @@ def train_bert(config, model, train_iter, dev_iter, test_iter):
                 print("No optimization for a long time, auto-stopping...")
                 flag = True
                 break
-            if flag:
-                break
-        writer.close()
-        test(config, model, test_iter)
+        if flag:
+            break
+
+    test(config, model, test_iter, writer)
+    writer.close()
 
 
-def test(config, model, test_iter):
+def test(config, model, test_iter, writer=None):
     model.load_state_dict(torch.load(config.save_path))
     model.eval()
     start_time = time.time()
@@ -186,7 +184,9 @@ def test(config, model, test_iter):
     print(test_confusion)
     time_dif = get_time_dif(start_time)
     print("Time usage:", time_dif)
-
+    if writer is not None:
+        pass
+    
 
 def evaluate(config, model, data_iter, test=False):
     model.eval()
