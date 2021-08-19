@@ -7,7 +7,6 @@
 """
 bert for ner model
 """
-import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 from transformers import BertPreTrainedModel, BertModel
@@ -18,14 +17,13 @@ from nlp.bertner.losses.label_smoothing import LabelSmoothingCrossEntropy
 
 class BertSoftmaxForNer(BertPreTrainedModel):
     def __init__(self, config):
-        super(BertSoftmaxForNer, self).__init__(config)
-        self.num_labels = config.num_labels
+        super(BertSoftmaxForNer, self).__init__(config.model_config)
+        self.num_labels = config.num_classes
 
-        self.bert = BertModel.from_pretrained(config.pretrain_name, config=config.model_config)
+        self.bert = BertModel.from_pretrained(config.bert_path, config=config.model_config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
-        self.classifier = nn.Linear(config.hidden_size, config.num_labels)
+        self.classifier = nn.Linear(config.hidden_size, config.num_classes)
         self.loss_type = config.loss_type
-        # self.init_weights()
 
     def forward(self, input_ids, attention_mask=None, token_type_ids=None,
                 position_ids=None, head_mask=None, labels=None):
@@ -47,13 +45,12 @@ class BertSoftmaxForNer(BertPreTrainedModel):
                 loss_fct = CrossEntropyLoss(ignore_index=0)
             # Only keep active parts of the loss
             if attention_mask is not None:
-                active_loss = attention_mask.view(-1) == 1
-                active_logits = logits.view(-1, self.num_labels)
-                active_labels = torch.where(
-                    active_loss, labels.view(-1), torch.tensor(loss_fct.ignore_index).type_as(labels)
-                )
+                active_loss = attention_mask.contiguous().view(-1) == 1
+                active_logits = logits.contiguous().view(-1, self.num_labels)[active_loss]
+                active_labels = labels.contiguous().view(-1)[active_loss]
                 loss = loss_fct(active_logits, active_labels)
             else:
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+                loss = loss_fct(logits.contiguous().view(-1, self.num_labels), labels.contiguous().view(-1))
             outputs = (loss,) + outputs
+
         return outputs  # (loss), scores, (hidden_states), (attentions)
