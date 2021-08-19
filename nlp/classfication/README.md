@@ -25,7 +25,7 @@ bert_DPCNN	94.47%	bert + DPCNN
 
 ```
 
-### model
+### RoBERTa-wwm
 
 ```text
 使用Huggingface-Transformers
@@ -61,6 +61,20 @@ BERT-wwm	98.0 (97.6)	97.8 (97.6)
 BERT-wwm-ext	97.7 (97.5)	97.7 (97.5)
 RoBERTa-wwm-ext	98.3 (97.9)	97.7 (97.5)
 RoBERTa-wwm-ext-large	98.3 (97.7)	97.8 (97.6)
+
+```
+
+### albert
+
+```text
+模型名	MODEL_NAME
+albert_tiny_google_zh	voidful/albert_chinese_tiny
+albert_small_google_zh	voidful/albert_chinese_small
+albert_base_zh (from google)	voidful/albert_chinese_base
+albert_large_zh (from google)	voidful/albert_chinese_large
+albert_xlarge_zh (from google)	voidful/albert_chinese_xlarge
+albert_xxlarge_zh (from google)	voidful/albert_chinese_xxlarge
+
 
 ```
 
