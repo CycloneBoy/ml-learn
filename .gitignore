@@ -32,4 +32,14 @@
 *.buffer
 
 /ml/xgboost/.ipynb_checkpoints
+/nlp/bert4ner/runs
+/nlp/bert4ner/wandb
+/nlp/bert4ner/log
+
+/nlp/bertner/.pytest_cache/*
+/nlp/bertner/log/*
+
+
+
+
 
