@@ -16,6 +16,7 @@ BERT_MODEL_NAME = "bert-base-chinese"
 @dataclass
 class ModelArguments:
     use_lstm: bool = field(default=True, metadata={"help": "是否使用LSTM"})
+    soft_label: bool = field(default=True, metadata={"help": "是否使用span"})
     lstm_hidden_size: int = field(default=500, metadata={"help": "LSTM隐藏层输出的维度"})
     lstm_layers: int = field(default=1, metadata={"help": "堆叠LSTM的层数"})
     lstm_dropout: float = field(default=0.5, metadata={"help": "LSTM的dropout"})

@@ -74,6 +74,41 @@ def ner_metrics(eval_output: EvalPrediction) -> Dict[str, float]:
     return metrics
 
 
+def bert_extract_item(start_logits, end_logits):
+    S = []
+    start_pred = torch.argmax(start_logits, -1).cpu().numpy()[0][1:-1]
+    end_pred = torch.argmax(end_logits, -1).cpu().numpy()[0][1:-1]
+    for i, s_l in enumerate(start_pred):
+        if s_l == 0:
+            continue
+        for j, e_l in enumerate(end_pred[i:]):
+            if s_l == e_l:
+                S.append((s_l, i, i + j))
+                break
+    return S
+
+
+def ner_span_metrics(eval_output: EvalPrediction) -> Dict[str, float]:
+    """
+    该函数是回调函数，Trainer会在进行评估时调用该函数
+    """
+    preds = eval_output.predictions
+    start_logits, end_logits = preds
+    preds = bert_extract_item(start_logits, end_logits)
+
+    # preds = np.argmax(preds, axis=-1).flatten()
+    labels = eval_output.label_ids.flatten()
+    # labels为0表示为<pad>，因此计算时需要去掉该部分
+    mask = labels != 0
+    preds = preds[mask]
+    labels = labels[mask]
+    metrics = dict()
+    metrics["f1"] = f1_score(labels, preds, average="macro")
+    metrics["precision"] = precision_score(labels, preds, average="macro")
+    metrics["recall"] = recall_score(labels, preds, average="macro")
+    return metrics
+
+
 if __name__ == "__main__":
     pass
 

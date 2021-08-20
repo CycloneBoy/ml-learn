@@ -43,7 +43,6 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
                       args=training_args,
                       train_dataset=train_dataset,
                       eval_dataset=eval_dataset,
-                      test_dataset=test_dataset,
                       tokenizer=tokenizer,
                       data_collator=collate_fn,
                       compute_metrics=ner_metrics)
