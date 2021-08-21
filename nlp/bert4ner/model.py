@@ -198,7 +198,10 @@ class BertSpanForNER(BertPreTrainedModel):
             output_hidden_states=None,
             return_dict=None,
             start_positions=None,
-            end_positions=None
+            end_positions=None,
+            input_len=None,
+            segment_ids=None,
+            subjects_id=None,
     ):
         return_dict = return_dict if return_dict is not None else self.config.use_return_dict
         outputs = self.bert(
@@ -265,6 +268,6 @@ class BertSpanForNER(BertPreTrainedModel):
             loss=loss if loss is not None else None,
             start_logits=start_logits,
             end_logits=end_logits,
-            hidden_states=outputs.hidden_states,
-            attentions=outputs.attentions,
+            hidden_states=None,
+            attentions=None,
         )

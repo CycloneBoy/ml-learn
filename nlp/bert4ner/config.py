@@ -10,7 +10,8 @@ from dataclasses import dataclass, field
 WORK_DIR = "/home/sl/workspace/python/a2020/ml-learn/nlp/bert4ner"
 BERT_PATH = "/home/sl/workspace/data/nlp/bert-base-chinese"
 CLUENER_DATASET_DIR = "/home/sl/workspace/python/a2020/ml-learn/nlp/bertner/datasets/cluener"
-BERT_MODEL_NAME = "bert-base-chinese"
+# BERT_MODEL_NAME = "bert-base-chinese"
+BERT_MODEL_NAME = BERT_PATH
 
 
 @dataclass
@@ -21,7 +22,7 @@ class ModelArguments:
     lstm_layers: int = field(default=1, metadata={"help": "堆叠LSTM的层数"})
     lstm_dropout: float = field(default=0.5, metadata={"help": "LSTM的dropout"})
     hidden_dropout: float = field(default=0.5, metadata={"help": "预训练模型输出向量表示的dropout"})
-    ner_num_labels: int = field(default=12, metadata={"help": "需要预测的标签数量"})
+    ner_num_labels: int = field(default=34, metadata={"help": "需要预测的标签数量"})
 
 
 @dataclass
@@ -39,6 +40,6 @@ class OurTrainingArguments:
 
 @dataclass
 class DataArguments:
-    train_file: str = field(default=WORK_DIR + "/data/train.txt", metadata={"help": "训练数据的路径"})
-    dev_file: str = field(default=WORK_DIR + "/data/dev.txt", metadata={"help": "测试数据的路径"})
-    test_file: str = field(default=WORK_DIR + "/data/test.txt", metadata={"help": "测试数据的路径"})
+    train_file: str = field(default=CLUENER_DATASET_DIR + "/train.json", metadata={"help": "训练数据的路径"})
+    dev_file: str = field(default=CLUENER_DATASET_DIR + "/dev.json", metadata={"help": "测试数据的路径"})
+    test_file: str = field(default=CLUENER_DATASET_DIR + "/test.json", metadata={"help": "测试数据的路径"})

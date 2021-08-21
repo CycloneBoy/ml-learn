@@ -16,10 +16,112 @@ from nlp.bert4ner.config import BERT_PATH, WORK_DIR, CLUENER_DATASET_DIR
 class Example:
     text: List[str]
     label: List[str] = None
+    subject: List[object] = None
+    guid: str = None
 
     def __post_init__(self):
         if self.label:
             assert len(self.text) == len(self.label)
+
+
+def get_entity_bios(seq, id2label):
+    """Gets entities from sequence.
+    note: BIOS
+    Args:
+        seq (list): sequence of labels.
+    Returns:
+        list: list of (chunk_type, chunk_start, chunk_end).
+    Example:
+        # >>> seq = ['B-PER', 'I-PER', 'O', 'S-LOC']
+        # >>> get_entity_bios(seq)
+        [['PER', 0,1], ['LOC', 3, 3]]
+    """
+    chunks = []
+    chunk = [-1, -1, -1]
+    for indx, tag in enumerate(seq):
+        if not isinstance(tag, str):
+            tag = id2label[tag]
+        if tag.startswith("S-"):
+            if chunk[2] != -1:
+                chunks.append(chunk)
+            chunk = [-1, -1, -1]
+            chunk[1] = indx
+            chunk[2] = indx
+            chunk[0] = tag.split('-')[1]
+            chunks.append(chunk)
+            chunk = (-1, -1, -1)
+        if tag.startswith("B-"):
+            if chunk[2] != -1:
+                chunks.append(chunk)
+            chunk = [-1, -1, -1]
+            chunk[1] = indx
+            chunk[0] = tag.split('-')[1]
+        elif tag.startswith('I-') and chunk[1] != -1:
+            _type = tag.split('-')[1]
+            if _type == chunk[0]:
+                chunk[2] = indx
+            if indx == len(seq) - 1:
+                chunks.append(chunk)
+        else:
+            if chunk[2] != -1:
+                chunks.append(chunk)
+            chunk = [-1, -1, -1]
+    return chunks
+
+
+def get_entity_bio(seq, id2label):
+    """Gets entities from sequence.
+    note: BIO
+    Args:
+        seq (list): sequence of labels.
+    Returns:
+        list: list of (chunk_type, chunk_start, chunk_end).
+    Example:
+        seq = ['B-PER', 'I-PER', 'O', 'B-LOC']
+        get_entity_bio(seq)
+        #output
+        [['PER', 0,1], ['LOC', 3, 3]]
+    """
+    chunks = []
+    chunk = [-1, -1, -1]
+    for indx, tag in enumerate(seq):
+        if not isinstance(tag, str):
+            tag = id2label[tag]
+        if tag.startswith("B-"):
+            if chunk[2] != -1:
+                chunks.append(chunk)
+            chunk = [-1, -1, -1]
+            chunk[1] = indx
+            chunk[0] = tag.split('-')[1]
+            chunk[2] = indx
+            if indx == len(seq) - 1:
+                chunks.append(chunk)
+        elif tag.startswith('I-') and chunk[1] != -1:
+            _type = tag.split('-')[1]
+            if _type == chunk[0]:
+                chunk[2] = indx
+
+            if indx == len(seq) - 1:
+                chunks.append(chunk)
+        else:
+            if chunk[2] != -1:
+                chunks.append(chunk)
+            chunk = [-1, -1, -1]
+    return chunks
+
+
+def get_entities(seq, id2label, markup='bios'):
+    '''
+    :param seq:
+    :param id2label:
+    :param markup:
+    :return:
+    '''
+    assert markup in ['bio', 'bios']
+    if markup == 'bio':
+        return get_entity_bio(seq, id2label)
+    else:
+        return get_entity_bios(seq, id2label)
 
 
 # 读取数据集:json 格式
@@ -50,9 +152,14 @@ def read_json(input_file):
 def read_dataset_json(input_file):
     """ 读取数据集:json 格式  """
     examples = []
+    set_type = get_set_type(input_file)
     lines = read_json(input_file)
-    for line in lines:
-        examples.append(Example(line["words"], line["labels"]))
+    for i, line in enumerate(lines):
+        guid = "%s-%s" % (set_type, i)
+        text_a = line['words']
+        labels = line['labels']
+        subject = get_entities(labels, id2label=None, markup='bios')
+        examples.append(Example(text_a, labels, subject, guid))
 
     return examples
 
@@ -61,6 +168,7 @@ def read_dataset_json(input_file):
 def read_dataset_txt(input_file):
     """read dataset """
     examples = []
+    set_type = get_set_type(input_file)
     with open(input_file, "r", encoding="utf-8") as file:
         text = []
         label = []
@@ -68,7 +176,9 @@ def read_dataset_txt(input_file):
             line = line.strip()
             # 一条文本结束
             if len(line) == 0:
-                examples.append(Example(text, label))
+                guid = "%s-%s" % (set_type, len(examples))
+                subject = get_entities(label, id2label=None, markup='bios')
+                examples.append(Example(text, label, subject, guid))
                 text = []
                 label = []
                 continue
@@ -87,15 +197,23 @@ def read_data(path, data_type="txt"):
     return examples
 
 
-def get_labels_from_list():
+def get_labels_from_list(label_type='bios'):
     "CLUENER TAGS"
-    return ["<pad>", "B-address", "B-book", "B-company", 'B-game', 'B-government', 'B-movie', 'B-name',
-            'B-organization', 'B-position', 'B-scene', "I-address",
-            "I-book", "I-company", 'I-game', 'I-government', 'I-movie', 'I-name',
-            'I-organization', 'I-position', 'I-scene',
-            "S-address", "S-book", "S-company", 'S-game', 'S-government', 'S-movie',
-            'S-name', 'S-organization', 'S-position',
-            'S-scene', 'O', "<start>", "<eos>"]
+    bios_tag_list = ["<pad>", "B-address", "B-book", "B-company", 'B-game', 'B-government', 'B-movie', 'B-name',
+                     'B-organization', 'B-position', 'B-scene', "I-address",
+                     "I-book", "I-company", 'I-game', 'I-government', 'I-movie', 'I-name',
+                     'I-organization', 'I-position', 'I-scene',
+                     "S-address", "S-book", "S-company", 'S-game', 'S-government', 'S-movie',
+                     'S-name', 'S-organization', 'S-position',
+                     'S-scene', 'O', "<start>", "<eos>"]
+
+    span_tag_list = ["<pad>", "O", "address", "book", "company", 'game', 'government', 'movie', 'name', 'organization',
+                     'position', 'scene', "<start>", "<eos>"]
+
+    if label_type == 'bios':
+        return bios_tag_list
+    else:
+        return span_tag_list
 
 
 def load_tag_from_file(path):
@@ -106,11 +224,11 @@ def load_tag_from_file(path):
     return tag2id, id2tag
 
 
-def load_tag(path=None):
+def load_tag(path=None, label_type='bios'):
     if path is not None:
         tag2id, id2tag = load_tag_from_file(path)
     else:
-        tags = get_labels_from_list()
+        tags = get_labels_from_list(label_type)
 
         id2tag = {i: label for i, label in enumerate(tags)}
         tag2id = {label: i for i, label in enumerate(tags)}
@@ -120,7 +238,9 @@ def load_tag(path=None):
 
 # tokenizer = BertTokenizer.from_pretrained("bert-base-chinese")
 tokenizer = BertTokenizer.from_pretrained(BERT_PATH)
-tag2id, id2tag = load_tag("./data/tag.txt")
+# tag2id, id2tag = load_tag("./data/tag.txt")
+# tag2id, id2tag = load_tag(label_type='bios')
+tag2id, id2tag = load_tag(label_type='span')
 
 
 def get_max_len(data_set):
@@ -131,6 +251,19 @@ def get_max_len(data_set):
             print(f" {index} - {var}")
 
     print(f"len: {len(data_set)} - max: {max_len} ")
+
+
+def get_set_type(input_file):
+    """获取数据集类型：train,dev,test """
+    begin_index = input_file.rindex("/")
+    end_index = input_file.rindex(".")
+    set_type = input_file[begin_index + 1:end_index]
+    return set_type
+
+
+# def test_get_id(input_file=WORK_DIR + "/data/train.txt"):
+#     set_type = get_set_type(input_file)
+#     print(set_type)
 
 
 if __name__ == "__main__":
