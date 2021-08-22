@@ -78,7 +78,7 @@ class NERSpanDataset(Dataset):
                 label_id = tag2id[label]
                 start_ids[start] = label_id
                 end_ids[end] = label_id
-                subjects_id.append([label_id, start, end])
+                subjects_id.append((label_id, start, end))
 
             # add sep token
             start_ids += [0]
@@ -91,7 +91,7 @@ class NERSpanDataset(Dataset):
             self.texts.append(torch.LongTensor(tokens))
             self.start_ids.append(torch.LongTensor(start_ids))
             self.end_ids.append(torch.LongTensor(end_ids))
-            self.subjects_id.append(torch.LongTensor(subjects_id))
+            self.subjects_id.append(subjects_id)
             self.input_len.append(torch.LongTensor(input_len))
             self.segment_ids.append(torch.LongTensor(segment_ids))
 
@@ -139,8 +139,9 @@ def collate_fn_span(features) -> Dict[str, Tensor]:
     batch_input_ids = pad_sequence(batch_input_ids, batch_first=True, padding_value=tokenizer.pad_token_id)
     batch_start_positions = pad_sequence(batch_start_positions, batch_first=True, padding_value=0)
     batch_end_positions = pad_sequence(batch_end_positions, batch_first=True, padding_value=0)
-
     batch_attention_mask = pad_sequence(batch_attention_mask, batch_first=True, padding_value=0)
+    batch_segment_ids = pad_sequence(batch_segment_ids, batch_first=True, padding_value=0)
+
     assert batch_input_ids.shape == batch_start_positions.shape
     assert batch_input_ids.shape == batch_end_positions.shape
     assert batch_input_ids.shape == batch_attention_mask.shape

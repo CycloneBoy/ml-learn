@@ -57,6 +57,22 @@ class SeqEntityScore(object):
             self.rights.extend([pre_entity for pre_entity in pre_entities if pre_entity in label_entities])
 
 
+def compute_metric(metric: SeqEntityScore, preds, labels, tag2id, id2tag):
+    """计算NER 的指标"""
+    for i, label in enumerate(labels):
+        temp_1 = []
+        temp_2 = []
+        for j, m in enumerate(label):
+            if j == 0:
+                continue
+            elif labels[i][j] == tag2id['<eos>']:
+                metric.update(pred_paths=[temp_2], label_paths=[temp_1])
+                break
+            else:
+                temp_1.append(id2tag[labels[i][j]])
+                temp_2.append(preds[i][j])
+
+
 class SpanEntityScore(object):
     def __init__(self, id2label):
         self.id2label = id2label

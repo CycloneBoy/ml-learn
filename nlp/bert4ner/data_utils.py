@@ -207,8 +207,8 @@ def get_labels_from_list(label_type='bios'):
                      'S-name', 'S-organization', 'S-position',
                      'S-scene', 'O', "<start>", "<eos>"]
 
-    span_tag_list = ["<pad>", "O", "address", "book", "company", 'game', 'government', 'movie', 'name', 'organization',
-                     'position', 'scene', "<start>", "<eos>"]
+    span_tag_list = ["O", "address", "book", "company", 'game', 'government', 'movie', 'name', 'organization',
+                     'position', 'scene']
 
     if label_type == 'bios':
         return bios_tag_list

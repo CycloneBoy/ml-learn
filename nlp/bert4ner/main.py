@@ -3,6 +3,8 @@
 # @File  : main.py
 # @Author: sl
 # @Date  : 2021/8/21 - 下午2:27
+import json
+import os
 import time
 from datetime import timedelta
 
@@ -12,10 +14,12 @@ from torch.utils.data import DataLoader
 from transformers import TrainingArguments, BertTokenizer, AdamW, get_linear_schedule_with_warmup, EvalPrediction
 from transformers.file_utils import logger, logging
 
-from config import ModelArguments, OurTrainingArguments, DataArguments
-from data_utils import read_data
-from model import BertForNER
-from train_utils import NERDataset, collate_fn, ner_metrics
+from config import ModelArguments, OurTrainingArguments, DataArguments, CLUENER_DATASET_DIR
+from data_utils import read_data, load_tag, get_entities
+from model import BertSpanForNER
+from nlp.bert4ner.common import json_to_text
+from nlp.bertner.ner_metrics import SeqEntityScore, compute_metric, SpanEntityScore
+from train_utils import ner_metrics, bert_extract_item, NERSpanDataset, collate_fn_span
 
 logger.setLevel(logging.INFO)
 
@@ -116,16 +120,21 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
     tokenizer = BertTokenizer.from_pretrained(args.bert_model_name)
 
     # 构建dataset
-    train_dataset = NERDataset(read_data(data_args.train_file, data_type="json"), tokenizer=tokenizer)
-    eval_dataset = NERDataset(read_data(data_args.dev_file, data_type="json"), tokenizer=tokenizer)
+    # train_dataset = NERDataset(read_data(data_args.train_file, data_type="json"), tokenizer=tokenizer)
+    # eval_dataset = NERDataset(read_data(data_args.dev_file, data_type="json"), tokenizer=tokenizer)
+
+    train_dataset = NERSpanDataset(read_data(data_args.train_file, data_type="json"), tokenizer=tokenizer)
+    eval_dataset = NERSpanDataset(read_data(data_args.dev_file, data_type="json"), tokenizer=tokenizer)
 
     train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=training_args.train_batch_size,
-                                  collate_fn=collate_fn)
+                                  collate_fn=collate_fn_span)
     eval_dataloader = DataLoader(eval_dataset, shuffle=False, batch_size=training_args.train_batch_size,
-                                 collate_fn=collate_fn)
+                                 collate_fn=collate_fn_span)
 
     # 加载预训练模型 "bert-base-chinese"
-    model = BertForNER.from_pretrained(args.bert_model_name, model_args=model_args)
+    # model = BertForNER.from_pretrained(args.bert_model_name, model_args=model_args)
+    # model = BertCrfForNER.from_pretrained(args.bert_model_name, model_args=model_args)
+    model = BertSpanForNER.from_pretrained(args.bert_model_name, model_args=model_args)
     model.to(device)
 
     start_time = time.time()
@@ -171,7 +180,8 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
         for step, batch in enumerate(train_dataloader):
             model.train()
             for k, v in batch.items():
-                batch[k] = v.to(device)
+                if k not in ["input_len", "subjects_id"]:
+                    batch[k] = v.to(device)
             inputs = batch
 
             optimizer.zero_grad()
@@ -197,7 +207,8 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
             if total_batch % 4 == 0:
                 # Log metrics
                 print("进行第 %d 次评估" % total_batch)
-                metrics_result = evaluate(model, eval_dataloader)
+                prefix = "{}".format(total_batch)
+                metrics_result = evaluate(model, eval_dataloader, prefix, 'span')
                 dev_loss = metrics_result["loss"]
                 if dev_loss < dev_best_loss:
                     dev_best_loss = dev_loss
@@ -223,7 +234,7 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
         print('Epoch [{}/{}] finished, use time :{}'.format(epoch + 1, args.epoch, get_time_dif(epoch_start_time)))
 
     print("训练完毕")
-    evaluate(model, eval_dataloader)
+    evaluate(model, eval_dataloader, 'finish', 'span')
     torch.save(model.state_dict(), f"./bert_{total_batch}.ptl")
 
     print("Epoch	Training Loss	Validation Loss	F1	Precision	Recall  Use Time ")
@@ -238,11 +249,18 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
     return total_batch, tr_loss / total_batch
 
 
-def evaluate(model, eval_dataloader):
+def evaluate(model, eval_dataloader, prefix="", ner_type="crf"):
+    if ner_type == 'crf':
+        return evaluate_crf(model, eval_dataloader, prefix=prefix)
+    else:
+        return evaluate_span(model, eval_dataloader, prefix=prefix)
+
+
+def evaluate_crf(model, eval_dataloader, prefix=""):
     """评估"""
 
     # Eval!
-    print("***** Running evaluation *****")
+    print("***** Running evaluation %s *****" % prefix)
     print("  Num examples = %d" % len(eval_dataloader))
 
     eval_loss = 0.0
@@ -253,6 +271,10 @@ def evaluate(model, eval_dataloader):
     labels_all = np.array([], dtype=int)
 
     predict_t = []
+    predict_result = []
+
+    tag2id, id2tag = load_tag(label_type='bios')
+    metric = SeqEntityScore(id2tag, markup='bios')
 
     model.eval()
     with torch.no_grad():
@@ -275,13 +297,30 @@ def evaluate(model, eval_dataloader):
             predict_test = logits.cpu()
             predict_t.append(predict_test.reshape(-1, predict_test.shape[-1]))
 
+            # 保存
+            result = {}
+            result["id"] = step + 1
+            result["input_ids"] = inputs['input_ids'].cpu().numpy()
+            result["labels"] = inputs['labels'].cpu().numpy()
+            result["attention_mask"] = inputs['attention_mask'].cpu().numpy()
+            result["predict_labels"] = np.argmax(logits.cpu().numpy(), axis=2)
+            predict_result.append(result)
+
+            # 计算metric
+            preds = predict.tolist()
+            out_label_ids = labels.tolist()
+            compute_metric(metric, preds, out_label_ids, tag2id, id2tag)
+
             nb_eval_steps += 1
             pbar(step)
-            # if step == 4:
-            #     break
+            if step == 4:
+                break
 
     eval_loss = eval_loss / nb_eval_steps
 
+    # save_pickle(predict_result, "./predict_result_{}.pkl".format(prefix))
+
+    # 第一种计算指标的方式
     predict_all_2 = predict_t[0]
     for i in range(1, len(predict_t)):
         predict_all_2 = torch.cat((predict_all_2, predict_t[i]))
@@ -290,16 +329,181 @@ def evaluate(model, eval_dataloader):
     results = ner_metrics(eval_data)
     results['loss'] = eval_loss
 
-    print("")
-    print("***** Eval results  *****")
+    print("第一种计算指标")
+    print("***** Eval results  %s *****" % prefix)
     info = "-".join([f' {key}: {value:.4f} ' for key, value in results.items()])
     print(info)
+
+    print("第二种计算指标")
+    eval_info, entity_info = metric.result()
+    results2 = {f'{key}': value for key, value in eval_info.items()}
+    results2['loss'] = eval_loss
+    results2["precision"] = results2["acc"]
+
+    print("***** Eval results %s *****" % prefix)
+    info = "-".join([f' {key}: {value:.4f} ' for key, value in results2.items()])
+    print(info)
+    print("***** Entity results %s *****" % prefix)
+    for key in sorted(entity_info.keys()):
+        print("******* %s results ********" % key)
+        info = "-".join([f' {key}: {value:.4f} ' for key, value in entity_info[key].items()])
+        print(info)
+
+    return results2
+
+
+def evaluate_span(model, eval_dataloader, prefix=""):
+    """评估"""
+
+    # Eval!
+    print("***** Running evaluation %s *****" % prefix)
+    print("  Num examples = %d" % len(eval_dataloader))
+
+    eval_loss = 0.0
+    nb_eval_steps = 0
+    pbar = ProgressBar(n_total=len(eval_dataloader), desc="Evaluating")
+
+    tag2id, id2tag = load_tag(label_type='span')
+    metric = SpanEntityScore(id2tag)
+
+    for step, batch in enumerate(eval_dataloader):
+        model.eval()
+        with torch.no_grad():
+            for k, v in batch.items():
+                if k not in ["input_len", "subjects_id"]:
+                    batch[k] = v.to(device)
+
+            inputs = batch
+            outputs = model(**inputs)
+            tmp_eval_loss, start_logits, end_logits = outputs[:3]
+
+            eval_loss += tmp_eval_loss.item()
+
+            R = bert_extract_item(start_logits, end_logits)
+            result_t = []
+            for sub in inputs['subjects_id']:
+                result_t.extend(sub)
+            T = result_t
+            metric.update(true_subject=T, pred_subject=R)
+
+        nb_eval_steps += 1
+        pbar(step)
+        if step == 4:
+            break
+
+    eval_loss = eval_loss / nb_eval_steps
+
+    # save_pickle(predict_result, "./predict_result_{}.pkl".format(prefix))
+
+    print("第二种计算指标")
+    eval_info, entity_info = metric.result()
+    results2 = {f'{key}': value for key, value in eval_info.items()}
+    results2['loss'] = eval_loss
+    results2["precision"] = results2["acc"]
+
+    print("***** Eval results %s *****" % prefix)
+    info = "-".join([f' {key}: {value:.4f} ' for key, value in results2.items()])
+    print(info)
+    print("***** Entity results %s *****" % prefix)
+    for key in sorted(entity_info.keys()):
+        print("******* %s results ********" % key)
+        info = "-".join([f' {key}: {value:.4f} ' for key, value in entity_info[key].items()])
+        print(info)
+
+    return results2
+
+
+def predict(model, args, test_dataloader, prefix=""):
+    """预测"""
+
+    pred_output_dir = args.output_dir
+    if not os.path.exists(pred_output_dir):
+        os.makedirs(pred_output_dir)
+
+    # prediction!
+    print("***** Running prediction %s *****" % prefix)
+    print("  Num examples = %d" % len(test_dataloader))
+    print("  Batch size = %d" % 1)
+
+    results = []
+
+    eval_loss = 0.0
+    nb_eval_steps = 0
+    pbar = ProgressBar(n_total=len(test_dataloader), desc="Predicting")
+
+    predict_all = np.array([], dtype=int)
+    labels_all = np.array([], dtype=int)
+
+    predict_t = []
+
+    model.eval()
+    with torch.no_grad():
+        for step, batch in enumerate(test_dataloader):
+            for k, v in batch.items():
+                batch[k] = v.to(device)
+
+            inputs = batch
+            outputs = model(**inputs)
+            tmp_eval_loss, logits = outputs[:2]
+
+            eval_loss += tmp_eval_loss.item()
+
+            predicts = np.argmax(logits.cpu().numpy(), axis=2).tolist()
+
+            predicts = predicts[0][1:-1]  # [CLS]XXXX[SEP]
+
+            tag2id, id2tag = load_tag(label_type='bios')
+
+            tags = [id2tag[x] for x in predicts]
+            label_entities = get_entities(predicts, id2tag, 'bios')
+            json_d = {}
+            json_d['id'] = step
+            json_d['tag_seq'] = " ".join(tags)
+            json_d['entities'] = label_entities
+            results.append(json_d)
+            pbar(step)
+
+            # if step == 4:
+            #     break
+    print(" ")
+    output_predic_file = os.path.join(pred_output_dir, prefix, "test_prediction.json")
+    output_submit_file = os.path.join(pred_output_dir, prefix, "test_submit.json")
+    with open(output_predic_file, "w") as writer:
+        for record in results:
+            writer.write(json.dumps(record) + '\n')
+    test_text = []
+    with open(os.path.join(CLUENER_DATASET_DIR, "test.json"), 'r') as fr:
+        for line in fr:
+            test_text.append(json.loads(line))
+    test_submit = []
+    for x, y in zip(test_text, results):
+        json_d = {}
+        json_d['id'] = x['id']
+        json_d['label'] = {}
+        entities = y['entities']
+        words = list(x['text'])
+        if len(entities) != 0:
+            for subject in entities:
+                tag = subject[0]
+                start = subject[1]
+                end = subject[2]
+                word = "".join(words[start:end + 1])
+                if tag in json_d['label']:
+                    if word in json_d['label'][tag]:
+                        json_d['label'][tag][word].append([start, end])
+                    else:
+                        json_d['label'][tag][word] = [[start, end]]
+                else:
+                    json_d['label'][tag] = {}
+                    json_d['label'][tag][word] = [[start, end]]
+        test_submit.append(json_d)
+    json_to_text(output_submit_file, test_submit)
 
     return results
 
 
 if __name__ == '__main__':
-    model_args = ModelArguments(use_lstm=False)
+    model_args = ModelArguments(use_lstm=False, ner_num_labels=11)
     data_args = DataArguments()
-    training_args = OurTrainingArguments(train_batch_size=4, eval_batch_size=4)
+    training_args = OurTrainingArguments(train_batch_size=4, eval_batch_size=1)
     run(model_args, data_args, training_args)

@@ -192,11 +192,9 @@ class BertSpanForNER(BertPreTrainedModel):
             position_ids=None,
             head_mask=None,
             inputs_embeds=None,
-            labels=None,
-            pos=None,
             output_attentions=None,
             output_hidden_states=None,
-            return_dict=None,
+            return_dict=False,
             start_positions=None,
             end_positions=None,
             input_len=None,
@@ -217,8 +215,8 @@ class BertSpanForNER(BertPreTrainedModel):
         )
 
         sequence_output = self.dropout(outputs[0])
-
         start_logits = self.start_fc(sequence_output)
+
         if start_positions is not None and self.training:
             if self.soft_label:
                 batch_size = input_ids.size(0)
@@ -237,7 +235,7 @@ class BertSpanForNER(BertPreTrainedModel):
         outputs = (start_logits, end_logits,) + outputs[2:]
 
         loss = None
-        if start_positions is not None and end_positions is not None and attention_mask is not None:
+        if start_positions is not None and end_positions is not None:
             loss_fct = nn.CrossEntropyLoss()
 
             start_logits = start_logits.view(-1, self.num_labels)
@@ -246,16 +244,23 @@ class BertSpanForNER(BertPreTrainedModel):
             # Only keep active parts of the loss
             active_loss = attention_mask.view(-1) == 1
 
-            active_start_logits = start_logits.view(-1, self.num_labels)
-            active_end_logits = end_logits.view(-1, self.num_labels)
+            active_start_logits = start_logits[active_loss]
+            active_end_logits = end_logits[active_loss]
 
-            active_start_labels = torch.where(
-                active_loss, start_positions.view(-1), torch.tensor(loss_fct.ignore_index).type_as(start_positions)
-            )
-            active_end_labels = torch.where(
-                active_loss, end_positions.view(-1), torch.tensor(loss_fct.ignore_index).type_as(end_positions)
-            )
+            active_start_labels = start_positions.view(-1)[active_loss]
+            active_end_labels = end_positions.view(-1)[active_loss]
 
+            # active_start_logits = start_logits.view(-1, self.num_labels)
+            # active_end_logits = end_logits.view(-1, self.num_labels)
+            #
+            # active_start_labels = torch.where(
+            #     active_loss, start_positions.view(-1), torch.tensor(loss_fct.ignore_index).type_as(start_positions)
+            # )
+            # active_end_labels = torch.where(
+            #     active_loss, end_positions.view(-1), torch.tensor(loss_fct.ignore_index).type_as(end_positions)
+            # )
+
+            # print(f"{active_start_logits.shape} - {active_start_labels.shape}")
             start_loss = loss_fct(active_start_logits, active_start_labels)
             end_loss = loss_fct(active_end_logits, active_end_labels)
             loss = (start_loss + end_loss) / 2

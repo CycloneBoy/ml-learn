@@ -36,6 +36,7 @@ class OurTrainingArguments:
     train_batch_size: int = field(default=8, metadata={"help": "训练时的batch size"})
     eval_batch_size: int = field(default=8, metadata={"help": "评估时的batch size"})
     bert_model_name: str = field(default=BERT_PATH, metadata={"help": "BERT模型名称"})
+    output_dir: str = field(default=WORK_DIR + "/output/", metadata={"help": "输出路径"})
 
 
 @dataclass

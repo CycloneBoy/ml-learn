@@ -30,6 +30,7 @@
 *.test
 *.train
 *.buffer
+*/__pycache__/
 
 /ml/xgboost/.ipynb_checkpoints
 /nlp/bert4ner/runs
@@ -43,3 +44,6 @@
 
 
 
+/nlp/bert4ner/.pytest_cache/
+
+*/__pycache__
