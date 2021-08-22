@@ -47,3 +47,6 @@
 /nlp/bert4ner/.pytest_cache/
 
 */__pycache__
+*/*/__pycache__
+*/*/*/__pycache__
+*/*/*/*/__pycache__
