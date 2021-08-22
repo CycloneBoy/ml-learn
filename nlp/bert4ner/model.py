@@ -244,21 +244,21 @@ class BertSpanForNER(BertPreTrainedModel):
             # Only keep active parts of the loss
             active_loss = attention_mask.view(-1) == 1
 
-            active_start_logits = start_logits[active_loss]
-            active_end_logits = end_logits[active_loss]
-
-            active_start_labels = start_positions.view(-1)[active_loss]
-            active_end_labels = end_positions.view(-1)[active_loss]
-
-            # active_start_logits = start_logits.view(-1, self.num_labels)
-            # active_end_logits = end_logits.view(-1, self.num_labels)
+            # active_start_logits = start_logits[active_loss]
+            # active_end_logits = end_logits[active_loss]
             #
-            # active_start_labels = torch.where(
-            #     active_loss, start_positions.view(-1), torch.tensor(loss_fct.ignore_index).type_as(start_positions)
-            # )
-            # active_end_labels = torch.where(
-            #     active_loss, end_positions.view(-1), torch.tensor(loss_fct.ignore_index).type_as(end_positions)
-            # )
+            # active_start_labels = start_positions.view(-1)[active_loss]
+            # active_end_labels = end_positions.view(-1)[active_loss]
+
+            active_start_logits = start_logits.view(-1, self.num_labels)
+            active_end_logits = end_logits.view(-1, self.num_labels)
+
+            active_start_labels = torch.where(
+                active_loss, start_positions.view(-1), torch.tensor(loss_fct.ignore_index).type_as(start_positions)
+            )
+            active_end_labels = torch.where(
+                active_loss, end_positions.view(-1), torch.tensor(loss_fct.ignore_index).type_as(end_positions)
+            )
 
             # print(f"{active_start_logits.shape} - {active_start_labels.shape}")
             start_loss = loss_fct(active_start_logits, active_start_labels)
