@@ -8,7 +8,8 @@
 from dataclasses import dataclass, field
 
 WORK_DIR = "/home/sl/workspace/python/a2020/ml-learn/nlp/bert4ner"
-BERT_PATH = "/home/sl/workspace/data/nlp/bert-base-chinese"
+# BERT_PATH = "/home/sl/workspace/data/nlp/bert-base-chinese"
+BERT_PATH = "/home/sl/workspace/data/nlp/bert-ner"
 CLUENER_DATASET_DIR = "/home/sl/workspace/python/a2020/ml-learn/nlp/bertner/datasets/cluener"
 # BERT_MODEL_NAME = "bert-base-chinese"
 BERT_MODEL_NAME = BERT_PATH

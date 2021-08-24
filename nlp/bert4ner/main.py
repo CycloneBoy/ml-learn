@@ -16,7 +16,7 @@ from transformers.file_utils import logger, logging
 
 from config import ModelArguments, OurTrainingArguments, DataArguments, CLUENER_DATASET_DIR
 from data_utils import read_data, load_tag, get_entities
-from model import BertSpanForNER
+from model import BertSpanForNER2
 from nlp.bert4ner.common import json_to_text
 from nlp.bertner.ner_metrics import SeqEntityScore, compute_metric, SpanEntityScore
 from train_utils import ner_metrics, bert_extract_item, NERSpanDataset, collate_fn_span
@@ -128,13 +128,13 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
 
     train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=training_args.train_batch_size,
                                   collate_fn=collate_fn_span)
-    eval_dataloader = DataLoader(eval_dataset, shuffle=False, batch_size=training_args.train_batch_size,
+    eval_dataloader = DataLoader(eval_dataset, shuffle=False, batch_size=training_args.eval_batch_size,
                                  collate_fn=collate_fn_span)
 
     # 加载预训练模型 "bert-base-chinese"
     # model = BertForNER.from_pretrained(args.bert_model_name, model_args=model_args)
     # model = BertCrfForNER.from_pretrained(args.bert_model_name, model_args=model_args)
-    model = BertSpanForNER.from_pretrained(args.bert_model_name, model_args=model_args)
+    model = BertSpanForNER2.from_pretrained(args.bert_model_name, model_args=model_args)
     model.to(device)
 
     start_time = time.time()
@@ -182,7 +182,11 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
             for k, v in batch.items():
                 if k not in ["input_len", "subjects_id"]:
                     batch[k] = v.to(device)
-            inputs = batch
+            # inputs = batch
+
+            inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
+                      "start_positions": batch["start_positions"], "end_positions": batch["end_positions"]
+                , "token_type_ids": batch["segment_ids"]}
 
             optimizer.zero_grad()
             outputs = model(**inputs)
@@ -367,24 +371,28 @@ def evaluate_span(model, eval_dataloader, prefix=""):
     metric = SpanEntityScore(id2tag)
 
     for step, batch in enumerate(eval_dataloader):
+        for k, v in batch.items():
+            if k not in ["input_len", "subjects_id"]:
+                batch[k] = v.to(device)
+
+        input_lens = batch["input_len"]
+
         model.eval()
         with torch.no_grad():
-            for k, v in batch.items():
-                if k not in ["input_len", "subjects_id"]:
-                    batch[k] = v.to(device)
+            inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
+                      "start_positions": batch["start_positions"], "end_positions": batch["end_positions"],
+                      "token_type_ids": batch["segment_ids"]}
 
-            inputs = batch
             outputs = model(**inputs)
-            tmp_eval_loss, start_logits, end_logits = outputs[:3]
+        tmp_eval_loss, start_logits, end_logits = outputs[:3]
+        eval_loss += tmp_eval_loss.item()
 
-            eval_loss += tmp_eval_loss.item()
-
-            R = bert_extract_item(start_logits, end_logits)
-            result_t = []
-            for sub in inputs['subjects_id']:
-                result_t.extend(sub)
-            T = result_t
-            metric.update(true_subject=T, pred_subject=R)
+        R = bert_extract_item(start_logits, end_logits)
+        result_t = []
+        for sub in batch['subjects_id']:
+            result_t.extend(sub)
+        T = result_t
+        metric.update(true_subject=T, pred_subject=R)
 
         nb_eval_steps += 1
         pbar(step)
@@ -505,5 +513,5 @@ def predict(model, args, test_dataloader, prefix=""):
 if __name__ == '__main__':
     model_args = ModelArguments(use_lstm=False, ner_num_labels=11)
     data_args = DataArguments()
-    training_args = OurTrainingArguments(train_batch_size=4, eval_batch_size=1)
+    training_args = OurTrainingArguments(train_batch_size=1, eval_batch_size=24)
     run(model_args, data_args, training_args)

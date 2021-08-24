@@ -56,7 +56,7 @@ class NERSpanDataset(Dataset):
         self.start_ids = []
         self.end_ids = []
         self.subjects_id = []
-        self.input_len = []
+        self.input_lens = []
         self.segment_ids = []
 
         for example in examples:
@@ -67,8 +67,9 @@ class NERSpanDataset(Dataset):
             start_ids = [0] * (len(tokens) - 2)
             end_ids = [0] * (len(tokens) - 2)
             segment_ids = [0] * len(tokens)
-            input_len = [0] * len(tokens)
-            input_len[0] = len(textlist)
+            # input_len = [0] * len(tokens)
+            # input_len[0] = len(textlist)
+            input_len = len(textlist)
             subjects_id = []
 
             for subject in subjects:
@@ -92,7 +93,7 @@ class NERSpanDataset(Dataset):
             self.start_ids.append(torch.LongTensor(start_ids))
             self.end_ids.append(torch.LongTensor(end_ids))
             self.subjects_id.append(subjects_id)
-            self.input_len.append(torch.LongTensor(input_len))
+            self.input_lens.append(input_len)
             self.segment_ids.append(torch.LongTensor(segment_ids))
 
         assert len(self.texts) == len(self.start_ids)
@@ -108,7 +109,7 @@ class NERSpanDataset(Dataset):
             "start_positions": self.start_ids[item],
             "end_positions": self.end_ids[item],
             "subjects_id": self.subjects_id[item],
-            "input_len": self.input_len[item],
+            "input_len": self.input_lens[item],
             "segment_ids": self.segment_ids[item]
         }
 
@@ -191,17 +192,26 @@ def ner_dev_metrics(preds, labels) -> Dict[str, float]:
     return metrics
 
 
+# 此处的一个大坑,默认只能处理一个batch的一个结果，
+# 导致调测的时候，验证每次f1很小，acc很高，
+# 最后终于定位出来，走了好多弯路：一开始以为改的代码有问题，最后交叉双向验证定位出位置
 def bert_extract_item(start_logits, end_logits):
     S = []
-    start_pred = torch.argmax(start_logits, -1).cpu().numpy()[0][1:-1]
-    end_pred = torch.argmax(end_logits, -1).cpu().numpy()[0][1:-1]
-    for i, s_l in enumerate(start_pred):
-        if s_l == 0:
-            continue
-        for j, e_l in enumerate(end_pred[i:]):
-            if s_l == e_l:
-                S.append((s_l, i, i + j))
-                break
+    start_preds = torch.argmax(start_logits, -1).cpu().numpy()
+    end_preds = torch.argmax(end_logits, -1).cpu().numpy()
+
+    # 处理每一个batch
+    for index, (start_pred, end_pred) in enumerate(zip(start_preds, end_preds)):
+        start_pred = start_pred[1:-1]
+        end_pred = end_pred[1:-1]
+
+        for i, s_l in enumerate(start_pred):
+            if s_l == 0:
+                continue
+            for j, e_l in enumerate(end_pred[i:]):
+                if s_l == e_l:
+                    S.append((s_l, i, i + j))
+                    break
     return S
 
 
