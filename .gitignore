@@ -36,15 +36,16 @@
 /nlp/bert4ner/runs
 /nlp/bert4ner/wandb
 /nlp/bert4ner/log
+/nlp/bert4ner/.pytest_cache/
+/nlp/bert4ner/output
 
 /nlp/bertner/.pytest_cache/*
 /nlp/bertner/log/*
 
+/nlp/re/rbert/log
+/nlp/re/rbert/output
 
 
-
-
-/nlp/bert4ner/.pytest_cache/
 
 */__pycache__
 */*/__pycache__
