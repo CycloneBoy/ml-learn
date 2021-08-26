@@ -11,12 +11,13 @@ from datetime import timedelta
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from tqdm import tqdm
 from transformers import TrainingArguments, BertTokenizer, AdamW, get_linear_schedule_with_warmup, EvalPrediction
 from transformers.file_utils import logger, logging
 
 from config import ModelArguments, OurTrainingArguments, DataArguments, CLUENER_DATASET_DIR
-from data_utils import read_data, load_tag, get_entities
-from model import BertSpanForNER2
+from data_utils import read_data, load_tag
+from model import AlbertSpanForNER
 from nlp.bert4ner.common import json_to_text
 from nlp.bertner.ner_metrics import SeqEntityScore, compute_metric, SpanEntityScore
 from train_utils import ner_metrics, bert_extract_item, NERSpanDataset, collate_fn_span
@@ -134,14 +135,36 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
     # 加载预训练模型 "bert-base-chinese"
     # model = BertForNER.from_pretrained(args.bert_model_name, model_args=model_args)
     # model = BertCrfForNER.from_pretrained(args.bert_model_name, model_args=model_args)
-    model = BertSpanForNER2.from_pretrained(args.bert_model_name, model_args=model_args)
+    # model = BertSpanForNER2.from_pretrained(args.bert_model_name, model_args=model_args)
+    model = AlbertSpanForNER.from_pretrained(args.bert_model_name, model_args=model_args)
     model.to(device)
 
-    start_time = time.time()
-    model.train()
+    if args.do_train:
+        print("进行训练")
+        global_step, tr_loss = train(model, args, train_dataloader, eval_dataloader, tokenizer, prefix="train")
+        logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
+        save_model(model, args, tokenizer)
+        print("训练完毕")
 
+    if args.do_eval:
+        print("进行验证")
+        evaluate(model, eval_dataloader, prefix='finish', ner_type='span')
+        # torch.save(model.state_dict(), f"./bert_{total_batch}.ptl")
+        print("验证完毕")
+
+    if args.do_predict:
+        print("进行预测")
+        predict(model, args, eval_dataloader, 'finish', )
+        # torch.save(model.state_dict(), f"./bert_{total_batch}.ptl")
+        print("预测完毕")
+
+
+def train(model, args, train_dataloader, eval_dataloader, tokenizer, prefix=""):
+    start_time = time.time()
     max_grad_norm = 1.0
     warmup = 0.05
+    learning_rate = 5e-5
+
     total_train_len = len(train_dataloader)
     num_training_steps = total_train_len * args.epoch
     num_warmup_steps = num_training_steps * warmup
@@ -154,14 +177,15 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
         {"params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)], "weight_decay": 0.0},
     ]
 
-    optimizer = AdamW(optimizer_grouped_parameters, lr=5e-5, correct_bias=False)
+    optimizer = AdamW(optimizer_grouped_parameters, lr=learning_rate, correct_bias=False)
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=num_warmup_steps,
                                                 num_training_steps=num_training_steps)
+
     # Train!
     print("***** Running training *****")
     print("  Num examples = %d" % total_train_len)
     print("  Num Epochs = %d" % args.epoch)
-    print("  Instantaneous batch size per GPU = %d", args.train_batch_size)
+    print("  Instantaneous batch size per GPU = %d" % args.train_batch_size)
 
     # 学习率指数衰减，每次epoch：学习率 = gamma * 学习率
     total_batch = 0  # 记录进行到多少batch
@@ -173,28 +197,33 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
     tr_loss, logging_loss = 0.0, 0.0
 
     train_result = []
+
     for epoch in range(args.epoch):
         epoch_start_time = time.time()
         print('Epoch [{}/{}]'.format(epoch + 1, args.epoch))
-        pbar = ProgressBar(n_total=total_train_len, desc='Training')
+
+        # pbar = ProgressBar(n_total=total_train_len, desc='Training')
+        pbar = tqdm(total=total_train_len, desc='Training')
         for step, batch in enumerate(train_dataloader):
             model.train()
             for k, v in batch.items():
                 if k not in ["input_len", "subjects_id"]:
                     batch[k] = v.to(device)
-            # inputs = batch
 
             inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
-                      "start_positions": batch["start_positions"], "end_positions": batch["end_positions"]
-                , "token_type_ids": batch["segment_ids"]}
+                      "start_positions": batch["start_positions"], "end_positions": batch["end_positions"],
+                      "token_type_ids": batch["segment_ids"]}
 
             optimizer.zero_grad()
             outputs = model(**inputs)
-            model.zero_grad()
+
             loss = outputs[0]
 
             loss.backward()
-            pbar(step, {'loss': loss.item()})
+            # pbar(step, {'loss': loss.item()})
+            time_dif = get_time_dif(start_time)
+            pbar.set_postfix({'loss': loss.item(), 'time': time_dif})
+            pbar.update()
             tr_loss += loss.item()
 
             # 梯度裁剪不再在AdamW中了(因此你可以毫无问题地使用放大器)
@@ -202,13 +231,15 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
 
             optimizer.step()
             scheduler.step()
+            model.zero_grad()
 
             total_batch += 1
-            time_dif = get_time_dif(start_time)
-            print(f"进行第 {step} 次迭代，总共： {total_batch} ,  Time: {time_dif}")
+
+            # print(f"进行第 {step} 次迭代，总共： {total_batch} ,  Time: {time_dif}")
 
             # 每多少轮输出在训练集和验证集上的效果
-            if total_batch % 4 == 0:
+            # if total_batch % args.eval_steps == 0:
+            if total_batch % total_train_len == 0:
                 # Log metrics
                 print("进行第 %d 次评估" % total_batch)
                 prefix = "{}".format(total_batch)
@@ -216,7 +247,7 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
                 dev_loss = metrics_result["loss"]
                 if dev_loss < dev_best_loss:
                     dev_best_loss = dev_loss
-                    torch.save(model.state_dict(), f"./bert_{total_batch}.ptl")
+                    # torch.save(model.state_dict(), f"./bert_{total_batch}.ptl")
                     improve = "*"
                     last_improve = total_batch
                 else:
@@ -235,12 +266,30 @@ def run(model_args: ModelArguments, data_args: DataArguments, args: OurTrainingA
                 metrics_result["train_time"] = time_dif
                 train_result.append(metrics_result)
 
+            # 每多少轮保存一次
+            if total_batch % args.save_steps == 0:
+                # Save model checkpoint
+                output_dir = os.path.join(args.output_dir, "checkpoint-{}".format(total_batch))
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+                model_to_save = (
+                    model.module if hasattr(model, "module") else model
+                )  # Take care of distributed/parallel training
+                model_to_save.save_pretrained(output_dir)
+
+                torch.save(args, os.path.join(output_dir, "training_args.bin"))
+                tokenizer.save_vocabulary(output_dir)
+
+                logger.info("Saving model checkpoint to %s", output_dir)
+                torch.save(optimizer.state_dict(), os.path.join(output_dir, "optimizer.pt"))
+                torch.save(scheduler.state_dict(), os.path.join(output_dir, "scheduler.pt"))
+                logger.info("Saving optimizer and scheduler states to %s", output_dir)
+
         print('Epoch [{}/{}] finished, use time :{}'.format(epoch + 1, args.epoch, get_time_dif(epoch_start_time)))
+        if 'cuda' in str(device):
+            torch.cuda.empty_cache()
 
     print("训练完毕")
-    evaluate(model, eval_dataloader, 'finish', 'span')
-    torch.save(model.state_dict(), f"./bert_{total_batch}.ptl")
-
     print("Epoch	Training Loss	Validation Loss	F1	Precision	Recall  Use Time ")
     print("-" * 100)
     for index, var in enumerate(train_result):
@@ -375,8 +424,6 @@ def evaluate_span(model, eval_dataloader, prefix=""):
             if k not in ["input_len", "subjects_id"]:
                 batch[k] = v.to(device)
 
-        input_lens = batch["input_len"]
-
         model.eval()
         with torch.no_grad():
             inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
@@ -431,48 +478,39 @@ def predict(model, args, test_dataloader, prefix=""):
     # prediction!
     print("***** Running prediction %s *****" % prefix)
     print("  Num examples = %d" % len(test_dataloader))
-    print("  Batch size = %d" % 1)
+    print("  Batch size = %d" % args.eval_batch_size)
 
     results = []
-
-    eval_loss = 0.0
-    nb_eval_steps = 0
     pbar = ProgressBar(n_total=len(test_dataloader), desc="Predicting")
+    tag2id, id2tag = load_tag(label_type='bios')
 
-    predict_all = np.array([], dtype=int)
-    labels_all = np.array([], dtype=int)
-
-    predict_t = []
-
-    model.eval()
-    with torch.no_grad():
-        for step, batch in enumerate(test_dataloader):
-            for k, v in batch.items():
+    for step, batch in enumerate(test_dataloader):
+        for k, v in batch.items():
+            if k not in ["input_len", "subjects_id"]:
                 batch[k] = v.to(device)
 
-            inputs = batch
+        model.eval()
+        with torch.no_grad():
+            inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
+                      "start_positions": batch["start_positions"], "end_positions": batch["end_positions"],
+                      "token_type_ids": batch["segment_ids"]}
+
             outputs = model(**inputs)
-            tmp_eval_loss, logits = outputs[:2]
 
-            eval_loss += tmp_eval_loss.item()
+        start_logits, end_logits = outputs[:2]
+        R = bert_extract_item(start_logits, end_logits)
 
-            predicts = np.argmax(logits.cpu().numpy(), axis=2).tolist()
+        if R:
+            label_entities = [[id2tag[x[0]], x[1], x[2]] for x in R]
+        else:
+            label_entities = []
 
-            predicts = predicts[0][1:-1]  # [CLS]XXXX[SEP]
+        json_d = {}
+        json_d['id'] = step
+        json_d['entities'] = label_entities
+        results.append(json_d)
+        pbar(step)
 
-            tag2id, id2tag = load_tag(label_type='bios')
-
-            tags = [id2tag[x] for x in predicts]
-            label_entities = get_entities(predicts, id2tag, 'bios')
-            json_d = {}
-            json_d['id'] = step
-            json_d['tag_seq'] = " ".join(tags)
-            json_d['entities'] = label_entities
-            results.append(json_d)
-            pbar(step)
-
-            # if step == 4:
-            #     break
     print(" ")
     output_predic_file = os.path.join(pred_output_dir, prefix, "test_prediction.json")
     output_submit_file = os.path.join(pred_output_dir, prefix, "test_submit.json")
@@ -510,8 +548,24 @@ def predict(model, args, test_dataloader, prefix=""):
     return results
 
 
+def save_model(model, args, tokenizer):
+    # Create output directory if needed
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+    logger.info("Saving model checkpoint to %s", args.output_dir)
+    # Save a trained model, configuration and tokenizer using `save_pretrained()`.
+    # They can then be reloaded using `from_pretrained()`
+    model_to_save = (
+        model.module if hasattr(model, "module") else model
+    )  # Take care of distributed/parallel training
+    model_to_save.save_pretrained(args.output_dir)
+    tokenizer.save_vocabulary(args.output_dir)
+    # Good practice: save your training arguments together with the trained model
+    torch.save(args, os.path.join(args.output_dir, "training_args.bin"))
+
+
 if __name__ == '__main__':
     model_args = ModelArguments(use_lstm=False, ner_num_labels=11)
     data_args = DataArguments()
-    training_args = OurTrainingArguments(train_batch_size=1, eval_batch_size=24)
+    training_args = OurTrainingArguments(train_batch_size=64, eval_batch_size=24)
     run(model_args, data_args, training_args)

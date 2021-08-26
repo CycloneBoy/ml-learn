@@ -9,7 +9,8 @@ from dataclasses import dataclass, field
 
 WORK_DIR = "/home/sl/workspace/python/a2020/ml-learn/nlp/bert4ner"
 # BERT_PATH = "/home/sl/workspace/data/nlp/bert-base-chinese"
-BERT_PATH = "/home/sl/workspace/data/nlp/bert-ner"
+# BERT_PATH = "/home/sl/workspace/data/nlp/bert-ner"
+BERT_PATH = "/home/sl/workspace/data/nlp/voidful/albert_chinese_tiny"
 CLUENER_DATASET_DIR = "/home/sl/workspace/python/a2020/ml-learn/nlp/bertner/datasets/cluener"
 # BERT_MODEL_NAME = "bert-base-chinese"
 BERT_MODEL_NAME = BERT_PATH
@@ -30,6 +31,7 @@ class ModelArguments:
 class OurTrainingArguments:
     checkpoint_dir: str = field(default=WORK_DIR + "/models/checkpoints", metadata={"help": "训练过程中的checkpoints的保存路径"})
     best_dir: str = field(default=WORK_DIR + "/models/best", metadata={"help": "最优模型的保存路径"})
+    do_train: bool = field(default=True, metadata={"help": "是否进行训练"})
     do_eval: bool = field(default=True, metadata={"help": "是否在训练时进行评估"})
     do_predict: bool = field(default=True, metadata={"help": "是否在训练时进行预测"})
     no_cuda: bool = field(default=True, metadata={"help": "是否不用CUDA"})
@@ -38,6 +40,8 @@ class OurTrainingArguments:
     eval_batch_size: int = field(default=8, metadata={"help": "评估时的batch size"})
     bert_model_name: str = field(default=BERT_PATH, metadata={"help": "BERT模型名称"})
     output_dir: str = field(default=WORK_DIR + "/output/", metadata={"help": "输出路径"})
+    eval_steps: int = field(default=4, metadata={"help": "每多少step进行验证一次"})
+    save_steps: int = field(default=100, metadata={"help": "每多少step进行保存一次"})
 
 
 @dataclass
