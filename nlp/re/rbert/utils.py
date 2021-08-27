@@ -159,7 +159,7 @@ def get_checkpoint_dir(file_dir="./"):
     return checkpoint_dir, max_step
 
 
-logger = init_logger("test")
+logger = init_logger("./log/test")
 
 if __name__ == '__main__':
     tags, tag2id, id2tag = load_tag(label_type=DATASET_TYPE_NAME)
