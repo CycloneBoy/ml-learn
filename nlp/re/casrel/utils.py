@@ -8,7 +8,9 @@ import os
 import time
 from datetime import timedelta
 
-from nlp.re.casrel.config import RELATION_DATA_DIR
+from transformers import BertTokenizer
+
+from nlp.re.casrel.config import RELATION_DATA_DIR, BERT_PATH
 from util.logger_utils import Logger
 
 
@@ -74,7 +76,27 @@ def check_file_exists(filename, delete=False):
         print("文件夹不存在,创建目录:{}".format(dir_name))
 
 
-logger = init_logger("./log/test")
+def load_tokenizer(model_name_or_path=BERT_PATH):
+    tokenizer = BertTokenizer.from_pretrained(model_name_or_path)
+    return tokenizer
+
+
+def get_checkpoint_dir(file_dir="./"):
+    checkpoints = []
+    for root, dirs, files in os.walk(file_dir):
+        checkpoints.extend(dirs)
+
+    max_step = 0
+    checkpoint_dir = None
+    for checkpoint in checkpoints:
+        global_step = checkpoint.split("-")[-1] if len(checkpoints) > 1 else 0
+        if int(global_step) > max_step:
+            max_step = int(global_step)
+            checkpoint_dir = checkpoint
+    return checkpoint_dir, max_step
+
+
+logger = init_logger("test")
 
 if __name__ == '__main__':
     tags, tag2id, id2tag = load_tag()

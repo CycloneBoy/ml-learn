@@ -12,11 +12,12 @@ from typing import List, Dict
 import torch
 from torch import Tensor
 from torch.nn.utils.rnn import pad_sequence
-from torch.utils.data import Dataset
-from transformers import BertTokenizer
+from torch.utils.data import Dataset, DataLoader
+from transformers import BertTokenizer, BertConfig
 
-from nlp.re.casrel.config import BERT_MODEL_NAME
-from nlp.re.casrel.utils import load_tag
+from nlp.re.casrel.config import BERT_MODEL_NAME, DATA_DIR, ModelArguments
+from nlp.re.casrel.model import CasRel
+from nlp.re.casrel.utils import load_tag, load_tokenizer
 from nlp.re.casrel.utils import logger
 
 
@@ -88,21 +89,16 @@ class Re18BaiduDataset(Dataset):
         self.obj_tails = []
         self.spo_list = []
 
-        self.token_type_ids = []
+        self.masks = []
 
         for (ex_index, example) in enumerate(examples):
             if ex_index % 5000 == 0:
                 logger.info("Writing example %d of %d" % (ex_index, len(examples)))
 
-            tokens = tokenizer.tokenize(example.text)
-            if len(tokens) > max_length - 1:
-                tokens = tokens[: (max_length - 1)]
+            tokenized = tokenizer(example.text, max_length=self.max_length, truncation=True)
 
-            token_type_ids = [0] * len(tokens)
-
-            # add cls　token
-            tokens = [tokenizer.cls_token] + tokens
-            token_type_ids = [0] + token_type_ids
+            tokens = tokenized['input_ids']
+            masks = tokenized['attention_mask']
             text_len = len(tokens)
 
             sub_heads, sub_tails = torch.zeros(text_len), torch.zeros(text_len)
@@ -113,7 +109,7 @@ class Re18BaiduDataset(Dataset):
             s2ro_map = defaultdict(list)
             for spo in example.spo_list:
                 triple = (self.tokenizer(spo.subject, add_special_tokens=False)['input_ids'],
-                          self.tag2id(spo.predicate),
+                          self.tag2id[spo.predicate],
                           self.tokenizer(spo.object, add_special_tokens=False)['input_ids'])
                 sub_head_idx = find_head_idx(tokens, triple[0])
                 obj_head_idx = find_head_idx(tokens, triple[2])
@@ -133,28 +129,26 @@ class Re18BaiduDataset(Dataset):
                     obj_heads[ro[0]][ro[2]] = 1
                     obj_tails[ro[1]][ro[2]] = 1
 
-            input_ids = tokenizer.convert_tokens_to_ids(tokens)
+            self.texts.append(example.text)
+            self.input_ids.append(torch.LongTensor(tokens))
+            self.masks.append(torch.LongTensor(masks))
 
-            self.texts.append(tokens)
-            self.input_ids.append(torch.LongTensor(input_ids))
-            self.sub_heads.append(torch.LongTensor(sub_heads))
-            self.sub_tails.append(torch.LongTensor(sub_tails))
-            self.sub_head.append(torch.LongTensor(sub_head))
-            self.sub_tail.append(torch.LongTensor(sub_tail))
+            self.sub_heads.append(sub_heads)
+            self.sub_tails.append(sub_tails)
+            self.sub_head.append(sub_head)
+            self.sub_tail.append(sub_tail)
 
-            self.obj_heads.append(torch.LongTensor(obj_heads))
-            self.obj_tails.append(torch.LongTensor(obj_tails))
+            self.obj_heads.append(obj_heads)
+            self.obj_tails.append(obj_tails)
 
             self.spo_list.append(example.spo_list)
-
-            self.token_type_ids.append(torch.LongTensor(token_type_ids))
 
             if ex_index < 5:
                 logger.info("*** Example ***")
                 logger.info("guid: %s" % example.guid)
                 logger.info("tokens: %s" % " ".join([str(x) for x in tokens]))
-                logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-                logger.info("token_type_ids: %s" % " ".join([str(x) for x in token_type_ids]))
+                logger.info("masks: %s" % " ".join([str(x) for x in masks]))
+
                 logger.info("sub_heads: %s" % " ".join([str(x) for x in sub_heads]))
                 logger.info("sub_tails: %s" % " ".join([str(x) for x in sub_tails]))
 
@@ -171,7 +165,7 @@ class Re18BaiduDataset(Dataset):
         return {
             "texts": self.texts[item],
             "input_ids": self.input_ids[item],
-            "token_type_ids": self.token_type_ids[item],
+            "masks": self.masks[item],
             "sub_heads": self.sub_heads[item],
             "sub_tails": self.sub_tails[item],
             "sub_head": self.sub_head[item],
@@ -184,7 +178,8 @@ class Re18BaiduDataset(Dataset):
 
 def collate_fn(features) -> Dict[str, Tensor]:
     batch_input_ids = [feature["input_ids"] for feature in features]
-    batch_token_type_ids = [feature["token_type_ids"] for feature in features]
+    batch_masks = [feature["masks"] for feature in features]
+
     batch_sub_heads = [feature["sub_heads"] for feature in features]
     batch_sub_tails = [feature["sub_tails"] for feature in features]
     batch_sub_head = [feature["sub_head"] for feature in features]
@@ -198,7 +193,7 @@ def collate_fn(features) -> Dict[str, Tensor]:
 
     # padding
     batch_input_ids = pad_sequence(batch_input_ids, batch_first=True, padding_value=0)
-    batch_token_type_ids = pad_sequence(batch_token_type_ids, batch_first=True, padding_value=0)
+    batch_masks = pad_sequence(batch_masks, batch_first=True, padding_value=0)
     batch_sub_heads = pad_sequence(batch_sub_heads, batch_first=True, padding_value=0)
     batch_sub_tails = pad_sequence(batch_sub_tails, batch_first=True, padding_value=0)
     batch_sub_head = pad_sequence(batch_sub_head, batch_first=True, padding_value=0)
@@ -209,14 +204,13 @@ def collate_fn(features) -> Dict[str, Tensor]:
 
     batch_attention_mask = pad_sequence(batch_attention_mask, batch_first=True, padding_value=0)
 
-    assert batch_input_ids.shape == batch_token_type_ids.shape
     assert batch_input_ids.shape == batch_sub_heads.shape
     assert batch_input_ids.shape == batch_sub_tails.shape
 
     return {
         "input_ids": batch_input_ids,
         "attention_mask": batch_attention_mask,
-        "token_type_ids": batch_token_type_ids,
+        "mask": batch_masks,
         "sub_head": batch_sub_head,
         "sub_tail": batch_sub_tail,
         "sub_heads": batch_sub_heads,
@@ -228,4 +222,40 @@ def collate_fn(features) -> Dict[str, Tensor]:
 
 
 if __name__ == '__main__':
-    pass
+    # 构建分词器
+    tokenizer = load_tokenizer()
+
+    train_filename = "{}/test.json".format(DATA_DIR)
+
+    # 构建dataset
+    train_dataset = Re18BaiduDataset(read_data(train_filename), tokenizer=tokenizer)
+    print(train_dataset[0])
+
+    train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=32,
+                                  collate_fn=collate_fn)
+
+    batch = next(iter(train_dataloader))
+    print(batch.keys())
+    print(type(batch["input_ids"]))
+    print(batch["input_ids"].shape)
+    print(type(batch["sub_head"]))
+    print(batch["sub_head"].shape)
+    print(type(batch["attention_mask"]))
+    print(batch["attention_mask"].shape)
+
+    tags, tag2id, id2tag = load_tag()
+    args = ModelArguments(num_relations=len(tags))
+    config = BertConfig.from_pretrained(
+        args.model_name_or_path,
+        num_labels=args.num_labels,
+        finetuning_task=args.task_name,
+        id2label=id2tag,
+        label2id=tag2id,
+    )
+    model = CasRel.from_pretrained(args.model_name_or_path, config=config, args=args)
+
+    inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
+              "sub_head": batch["sub_head"], "sub_tail": batch["sub_tail"]}
+
+    output = model(**inputs)
+    print(type(output))

@@ -8,9 +8,8 @@
 from dataclasses import dataclass, field
 
 WORK_DIR = "/home/sl/workspace/python/a2020/ml-learn/nlp/re/rbert"
-# BERT_PATH = "/home/sl/workspace/data/nlp/bert-base-chinese"
+BERT_PATH = "/home/sl/workspace/data/nlp/bert-base-chinese"
 # BERT_PATH = "/home/sl/workspace/data/nlp/bert-ner"
-BERT_PATH = "/home/sl/workspace/data/nlp/bert-base-uncased"
 
 DATA_DIR = "/home/sl/workspace/data/nlp/re18baidu/baidu"
 RELATION_DATA_DIR = DATA_DIR + "/rel.json"
@@ -53,6 +52,7 @@ class ModelArguments:
     weight_decay: float = field(default=0.0, metadata={"help": "weight_decay."})
     max_grad_norm: float = field(default=1.0, metadata={"help": "Linear warmup over warmup_steps."})
     seed: int = field(default=42, metadata={"help": "seed"})
+    num_relations: int = field(default=42, metadata={"help": "seed"})
 
 
 @dataclass
