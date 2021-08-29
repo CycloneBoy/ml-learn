@@ -5,9 +5,12 @@
 # @Date  : 2021/8/27 - 下午4:49
 import json
 import os
+import random
 import time
 from datetime import timedelta
 
+import numpy as np
+import torch
 from transformers import BertTokenizer
 
 from nlp.re.casrel.config import RELATION_DATA_DIR, BERT_PATH
@@ -94,6 +97,14 @@ def get_checkpoint_dir(file_dir="./"):
             max_step = int(global_step)
             checkpoint_dir = checkpoint
     return checkpoint_dir, max_step
+
+
+def set_seed(args):
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if not args.no_cuda and torch.cuda.is_available():
+        torch.cuda.manual_seed_all(args.seed)
 
 
 logger = init_logger("test")

@@ -24,7 +24,8 @@ class ModelArguments:
     dropout_rate: float = field(default=0.1, metadata={"help": "预训练模型输出向量表示的dropout"})
     num_labels: int = field(default=19, metadata={"help": "需要预测的标签数量"})
     model_name_or_path: str = field(default=BERT_PATH, metadata={"help": "BERT模型名称"})
-    task_name: str = field(default="R_BERT", metadata={"help": "任务名称"})
+    model_name: str = field(default="CASREL", metadata={"help": "模型名称"})
+    task_name: str = field(default="baidu", metadata={"help": "任务名称"})
 
     train_file: str = field(default=DATA_DIR + "/train.json", metadata={"help": "训练数据的路径"})
     dev_file: str = field(default=DATA_DIR + "/dev.json", metadata={"help": "测试数据的路径"})
@@ -37,12 +38,19 @@ class ModelArguments:
     do_eval: bool = field(default=True, metadata={"help": "是否在训练时进行评估"})
     do_predict: bool = field(default=True, metadata={"help": "是否在训练时进行预测"})
     no_cuda: bool = field(default=True, metadata={"help": "是否不用CUDA"})
+    output: bool = field(default=True, metadata={"help": "是否输出"})
+    overwrite_cache: bool = field(default=False, metadata={"help": "是否覆盖缓存"})
+
     epoch: int = field(default=5, metadata={"help": "训练的epoch"})
     train_batch_size: int = field(default=8, metadata={"help": "训练时的batch size"})
     eval_batch_size: int = field(default=8, metadata={"help": "评估时的batch size"})
+    train_max_seq_length: int = field(default=384, metadata={"help": "训练时的最大长度"})
+    eval_max_seq_length: int = field(default=384, metadata={"help": "评估时的最大长度"})
+
     bert_model_name: str = field(default=BERT_PATH, metadata={"help": "BERT模型名称"})
     output_dir: str = field(default=WORK_DIR + "/output/", metadata={"help": "输出路径"})
     eval_dir: str = field(default=WORK_DIR + "/eval/", metadata={"help": "输出路径"})
+    result_save_name: str = field(default="result.json", metadata={"help": "输出文件"})
 
     eval_steps: int = field(default=4, metadata={"help": "每多少step进行验证一次"})
     save_steps: int = field(default=4, metadata={"help": "每多少step进行保存一次"})
@@ -52,7 +60,7 @@ class ModelArguments:
     weight_decay: float = field(default=0.0, metadata={"help": "weight_decay."})
     max_grad_norm: float = field(default=1.0, metadata={"help": "Linear warmup over warmup_steps."})
     seed: int = field(default=42, metadata={"help": "seed"})
-    num_relations: int = field(default=42, metadata={"help": "seed"})
+    num_relations: int = field(default=18, metadata={"help": "seed"})
 
 
 @dataclass

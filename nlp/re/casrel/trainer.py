@@ -3,10 +3,10 @@
 # @File  : trainer.py
 # @Author: sl
 # @Date  : 2021/8/26 - 下午2:45
+import json
 import os
 import time
 
-import numpy as np
 import torch
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, RandomSampler
@@ -93,7 +93,7 @@ class Trainer(object):
         start_time = time.time()
 
         train_result = []
-        writer = SummaryWriter(log_dir='./' + time.strftime('%m-%d_%H.%M', time.localtime()))
+        writer = SummaryWriter(log_dir='./log/' + time.strftime('%m-%d_%H_%M', time.localtime()))
         for epoch in range(self.args.epoch):
             epoch_start_time = time.time()
             logger.info('Epoch [{}/{}]'.format(epoch + 1, self.args.epoch))
@@ -104,9 +104,10 @@ class Trainer(object):
                 self.model.train()
 
                 for k, v in batch.items():
-                    batch[k] = v.to(self.device)
+                    if k not in ["triples"]:
+                        batch[k] = v.to(self.device)
 
-                inputs = {"token_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
+                inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
                           "sub_head": batch["sub_head"], "sub_tail": batch["sub_tail"],
                           "sub_heads": batch["sub_heads"], "sub_tails": batch["sub_tails"],
                           "obj_heads": batch["obj_heads"], "obj_tails": batch["obj_tails"]}
@@ -178,7 +179,7 @@ class Trainer(object):
         writer.close()
         return global_step, tr_loss / global_step
 
-    def evaluate(self, mode="test"):
+    def evaluate(self, mode="test", h_bar=0.5, t_bar=0.5):
         # We use test dataset because semeval doesn't have dev dataset
         if mode == "test":
             dataset = self.test_dataset
@@ -199,40 +200,115 @@ class Trainer(object):
         preds = None
         out_label_ids = None
 
+        orders = ['subject', 'relation', 'object']
+        correct_num, predict_num, gold_num = 0, 0, 0
         self.model.eval()
 
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
             for k, v in batch.items():
-                # if k not in ["input_len", "subjects_id"]:
-                batch[k] = v.to(self.device)
+                if k not in ["triples"]:
+                    batch[k] = v.to(self.device)
 
-            inputs = {"token_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
-                      "sub_head": batch["sub_head"], "sub_tail": batch["sub_tail"]}
+            inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
+                      "sub_head": batch["sub_head"], "sub_tail": batch["sub_tail"],
+                      "sub_heads": batch["sub_heads"], "sub_tails": batch["sub_tails"],
+                      "obj_heads": batch["obj_heads"], "obj_tails": batch["obj_tails"]}
 
             with torch.no_grad():
-                outputs = self.model(**inputs)
-                tmp_eval_loss, logits = outputs[:2]
+                input_ids = batch["input_ids"]
+                attention_mask = batch["attention_mask"]
+                encoded_text, outputs = self.model.get_encoded_text(input_ids, attention_mask)
+                pred_sub_heads, pred_sub_tails = self.model.get_subs(encoded_text)
 
-                eval_loss += tmp_eval_loss.mean().item()
-            nb_eval_steps += 1
+                sub_heads = torch.where(pred_sub_heads[0] > h_bar)[0]
+                sub_tails = torch.where(pred_sub_tails[0] > t_bar)[0]
+                subjects = []
+                for sub_head in sub_heads:
+                    sub_tail = sub_tails[sub_tails >= sub_head]
+                    if len(sub_tail) > 0:
+                        sub_tail = sub_tail[0]
+                        subject = ''.join(self.tokenizer.decode(input_ids[0][sub_head: sub_tail + 1]).split())
+                        subjects.append((subject, sub_head, sub_tail))
 
-            if preds is None:
-                preds = logits.detach().cpu().numpy()
-                out_label_ids = inputs["labels"].detach().cpu().numpy()
-            else:
-                preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
-                out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
+                if subjects:
+                    triple_list = []
+                    # [subject_num, seq_len, bert_dim]
+                    repeated_encoded_text = encoded_text.repeat(len(subjects), 1, 1)
+                    # [subject_num, 1, seq_len]
+                    sub_head_mapping = torch.zeros((len(subjects), 1, encoded_text.size(1)), dtype=torch.float,
+                                                   device=self.device)
+                    sub_tail_mapping = torch.zeros((len(subjects), 1, encoded_text.size(1)), dtype=torch.float,
+                                                   device=self.device)
+                    for subject_idx, subject in enumerate(subjects):
+                        sub_head_mapping[subject_idx][0][subject[1]] = 1
+                        sub_tail_mapping[subject_idx][0][subject[2]] = 1
 
-        eval_loss = eval_loss / nb_eval_steps
-        results = {"loss": eval_loss}
-        preds = np.argmax(preds, axis=1)
+                    sub_tail_mapping1 = sub_tail_mapping.to(repeated_encoded_text)
+                    sub_head_mapping1 = sub_head_mapping.to(repeated_encoded_text)
 
-        # write_prediction(self.args, os.path.join(self.args.eval_dir, "proposed_answers.txt"), preds)
+                    pred_obj_heads, pred_obj_tails = self.model.get_objs_for_specific_sub(sub_head_mapping1,
+                                                                                          sub_tail_mapping1,
+                                                                                          repeated_encoded_text)
+                    for subject_idx, subject in enumerate(subjects):
+                        sub = subject[0]
+                        obj_heads = torch.where(pred_obj_heads[subject_idx] > h_bar)
+                        obj_tails = torch.where(pred_obj_tails[subject_idx] > t_bar)
+                        for obj_head, rel_head in zip(*obj_heads):
+                            for obj_tail, rel_tail in zip(*obj_tails):
+                                if obj_head <= obj_tail and rel_head == rel_tail:
+                                    rel = self.id2tag[int(rel_head)]
+                                    obj = ''.join(self.tokenizer.decode(input_ids[0][obj_head: obj_tail + 1]).split())
+                                    triple_list.append((sub, rel, obj))
+                                    break
 
-        # result = compute_metrics(preds, out_label_ids)
-        result = {}
-        results.update(result)
-        results["precision"] = results["acc"]
+                    triple_set = set()
+                    for s, r, o in triple_list:
+                        triple_set.add((s, r, o))
+                    pred_list = list(triple_set)
+
+                else:
+                    pred_list = []
+
+                pred_triples = set(pred_list)
+                gold_triples = set(self.to_tuple(batch['triples'][0]))
+                correct_num += len(pred_triples & gold_triples)
+                predict_num += len(pred_triples)
+                gold_num += len(gold_triples)
+
+                if self.args.output:
+                    if not os.path.exists(self.args.output_dir):
+                        os.mkdir(self.args.output_dir)
+                    path = os.path.join(self.args.output_dir, self.args.result_save_name)
+                    fw = open(path, 'w')
+                    result = json.dumps({
+                        'triple_list_gold': [
+                            dict(zip(orders, triple)) for triple in gold_triples
+                        ],
+                        'triple_list_pred': [
+                            dict(zip(orders, triple)) for triple in pred_triples
+                        ],
+                        'new': [
+                            dict(zip(orders, triple)) for triple in pred_triples - gold_triples
+                        ],
+                        'lack': [
+                            dict(zip(orders, triple)) for triple in gold_triples - pred_triples
+                        ]
+                    }, ensure_ascii=False)
+                    fw.write(result + '\n')
+
+        logger.info(
+            "correct_num: {:3d}, predict_num: {:3d}, gold_num: {:3d}".format(correct_num, predict_num, gold_num))
+        precision = correct_num / (predict_num + 1e-10)
+        recall = correct_num / (gold_num + 1e-10)
+        f1_score = 2 * precision * recall / (precision + recall + 1e-10)
+        logger.info('f1: {:4.2f}, precision: {:4.2f}, recall: {:4.2f}'.format(f1_score, precision, recall))
+
+        results = {}
+        results["precision"] = precision
+        results["acc"] = precision
+        results["recall"] = recall
+        results["f1"] = f1_score
+        results["loss"] = 0
 
         logger.info("***** Eval results *****")
         for key in sorted(results.keys()):
@@ -266,3 +342,9 @@ class Trainer(object):
         self.model = CasRel.from_pretrained(os.path.join(self.args.output_dir, checkpoint_dir), args=self.args)
         self.model.to(self.device)
         logger.info("***** Model Loaded *****")
+
+    def to_tuple(self, triple_list):
+        ret = []
+        for triple in triple_list:
+            ret.append((triple['subject'], triple['predicate'], triple['object']))
+        return ret

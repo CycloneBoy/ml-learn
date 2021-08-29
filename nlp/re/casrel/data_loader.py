@@ -4,6 +4,7 @@
 # @Author: sl
 # @Date  : 2021/8/27 - 下午4:27
 import json
+import os
 from collections import defaultdict
 from dataclasses import dataclass
 from random import choice
@@ -221,6 +222,34 @@ def collate_fn(features) -> Dict[str, Tensor]:
     }
 
 
+def load_dataset(args, tokenizer, data_type="train"):
+    max_length = args.train_max_seq_length if data_type == 'train' else args.eval_max_seq_length
+    cached_features_file = 'cached_{}-{}_{}_{}_{}'.format(args.model_name, data_type,
+                                                          list(filter(None, args.model_name_or_path.split('/'))).pop(),
+                                                          str(max_length), args.task_name)
+
+    if os.path.exists(cached_features_file) and not args.overwrite_cache:
+        logger.info("Loading dataset from cached file %s", cached_features_file)
+        dataset = torch.load(cached_features_file)
+        logger.info("Loading dataset success,length: %s", len(dataset))
+    else:
+        if data_type == "train":
+            file_name = args.train_file
+        elif data_type == "dev":
+            file_name = args.dev_file
+        elif data_type == "test":
+            file_name = args.test_file
+        else:
+            file_name = args.dev_file
+
+        logger.info("Creating dataset file at %s", file_name)
+        dataset = Re18BaiduDataset(read_data(file_name), max_length=max_length, tokenizer=tokenizer)
+        torch.save(dataset, cached_features_file)
+        logger.info("Catching dataset file at %s,length: %s", cached_features_file, len(dataset))
+
+    return dataset
+
+
 if __name__ == '__main__':
     # 构建分词器
     tokenizer = load_tokenizer()
@@ -228,7 +257,10 @@ if __name__ == '__main__':
     train_filename = "{}/test.json".format(DATA_DIR)
 
     # 构建dataset
-    train_dataset = Re18BaiduDataset(read_data(train_filename), tokenizer=tokenizer)
+    # train_dataset = Re18BaiduDataset(read_data(train_filename), tokenizer=tokenizer)
+
+    args = ModelArguments(save_steps=100)
+    train_dataset = load_dataset(args, tokenizer=tokenizer, data_type="train")
     print(train_dataset[0])
 
     train_dataloader = DataLoader(train_dataset, shuffle=False, batch_size=32,
@@ -255,7 +287,13 @@ if __name__ == '__main__':
     model = CasRel.from_pretrained(args.model_name_or_path, config=config, args=args)
 
     inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
-              "sub_head": batch["sub_head"], "sub_tail": batch["sub_tail"]}
+              "sub_head": batch["sub_head"], "sub_tail": batch["sub_tail"],
+              "sub_heads": batch["sub_heads"], "sub_tails": batch["sub_tails"],
+              "obj_heads": batch["obj_heads"], "obj_tails": batch["obj_tails"]}
 
     output = model(**inputs)
     print(type(output))
+    print(output[0])
+    print(type(output[0]))
+    print(output[1])
+    print(output[1].shape())
