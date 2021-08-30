@@ -44,8 +44,11 @@
 
 /nlp/re/rbert/log
 /nlp/re/rbert/output
+/nlp/re/casrel/log/*
+/nlp/re/casrel/cached_CASREL*
 
-
+/nlp/match/bert/log/*
+/nlp/match/bert/cached_*
 
 */__pycache__
 */*/__pycache__
