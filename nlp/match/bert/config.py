@@ -40,6 +40,8 @@ class ModelArguments:
     dev_file: str = field(default=DATA_DIR + "/dev.csv", metadata={"help": "测试数据的路径"})
     test_file: str = field(default=DATA_DIR + "/test.csv", metadata={"help": "测试数据的路径"})
     relation_file: str = field(default=DATA_DIR + "/rel.json", metadata={"help": "关系数据的路径"})
+    vocab_file: str = field(default=DATA_DIR + "/word2vec/char_vocab.txt", metadata={"help": "词典文件"})
+    vocab_mode: str = field(default="char", metadata={"help": "词典文件类型"})
 
     checkpoint_dir: str = field(default=WORK_DIR + "/models/checkpoints", metadata={"help": "训练过程中的checkpoints的保存路径"})
     best_dir: str = field(default=WORK_DIR + "/models/best", metadata={"help": "最优模型的保存路径"})
@@ -71,3 +73,7 @@ class ModelArguments:
     max_grad_norm: float = field(default=1.0, metadata={"help": "Linear warmup over warmup_steps."})
     seed: int = field(default=42, metadata={"help": "seed"})
     num_relations: int = field(default=18, metadata={"help": "seed"})
+
+    hidden_size: int = field(default=200, metadata={"help": "esim hidden_size"})
+    embeddings: str = field(default=None, metadata={"help": "esim embeddings"})
+    dropout: float = field(default=0.2, metadata={"help": "esim dropout"})

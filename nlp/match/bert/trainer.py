@@ -13,12 +13,10 @@ from torch.utils.data import DataLoader, RandomSampler
 from tqdm import tqdm
 from transformers import BertConfig, AdamW, get_linear_schedule_with_warmup, XLNetConfig
 
-from nlp.match.bert.data_loader import collate_fn
-from nlp.match.bert.model import BertSequenceClassification, XlnetSequenceClassification
-from nlp.match.bert.utils import compute_metrics, load_tokenizer, load_tag, logger, get_time_dif, get_checkpoint_dir
-
-
-# logger = logging.getLogger(__name__)from nlp.re.rbert.model import RBERT
+from nlp.match.bert.data_loader import collate_fn, collate_fn_rnn
+from nlp.match.bert.model import BertSequenceClassification, XlnetSequenceClassification, ESIM
+from nlp.match.bert.utils import compute_metrics, load_tokenizer, load_tag, get_time_dif, get_checkpoint_dir
+from util.logger_utils import logger
 
 
 class Trainer(object):
@@ -33,17 +31,21 @@ class Trainer(object):
         self.num_labels = len(self.tags)
 
         self.config = None
+        # GPU or CPU
+        self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+
         self.build_pretrained_config()
         self.model = None
         self.build_model()
 
         self.tokenizer = load_tokenizer(args.model_name_or_path, args)
 
-        # GPU or CPU
-        self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
         self.model.to(self.device)
 
     def build_pretrained_config(self):
+        if self.args.model_name == 'esim':
+            return
+
         if "xlnet" == self.pretrained_model_name:
             self.config = XLNetConfig.from_pretrained(
                 self.args.model_name_or_path,
@@ -62,19 +64,23 @@ class Trainer(object):
             )
 
     def build_model(self):
-
-        if "xlnet" == self.pretrained_model_name:
-            self.model = XlnetSequenceClassification.from_pretrained(self.args.model_name_or_path,
-                                                                     config=self.config, args=self.args)
-        else:
-            self.model = BertSequenceClassification.from_pretrained(self.args.model_name_or_path,
-                                                                    config=self.config, args=self.args)
+        if self.args.model_name == 'esim':
+            self.model = ESIM(hidden_size=self.args.hidden_size, embeddings=self.args.embeddings,
+                              dropout=self.args.dropout, num_labels=self.args.num_labels,
+                              device=self.device)
+        elif self.args.model_name == 'bert':
+            if "xlnet" == self.pretrained_model_name:
+                self.model = XlnetSequenceClassification.from_pretrained(self.args.model_name_or_path,
+                                                                         config=self.config, args=self.args)
+            else:
+                self.model = BertSequenceClassification.from_pretrained(self.args.model_name_or_path,
+                                                                        config=self.config, args=self.args)
 
     def train(self):
         train_sampler = RandomSampler(self.train_dataset)
         train_dataloader = DataLoader(self.train_dataset, sampler=train_sampler,
                                       batch_size=self.args.train_batch_size,
-                                      collate_fn=collate_fn)
+                                      collate_fn=self.get_collate_fn())
 
         eval_steps = len(train_dataloader)
         save_steps = eval_steps
@@ -130,16 +136,11 @@ class Trainer(object):
             logger.info('Epoch [{}/{}]'.format(epoch + 1, self.args.epoch))
 
             # pbar = ProgressBar(n_total=total_train_len, desc='Training')
-            pbar = tqdm(total=len(train_dataloader), desc='Training-Batch[{}/{}]'.format(epoch + 1, self.args.epoch))
+            pbar = tqdm(total=len(train_dataloader),
+                        desc='Training-Batch[{}/{}]'.format(epoch + 1, self.args.epoch))
             for step, batch in enumerate(train_dataloader):
                 self.model.train()
-
-                for k, v in batch.items():
-                    if k not in ["triples"]:
-                        batch[k] = v.to(self.device)
-
-                inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
-                          "token_type_ids": batch["token_type_ids"], "labels": batch["labels"]}
+                inputs = self.batch_to_input(batch)
 
                 optimizer.zero_grad()
                 outputs = self.model(**inputs)
@@ -221,7 +222,7 @@ class Trainer(object):
             raise Exception("Only dev and test dataset available")
 
         eval_dataloader = DataLoader(dataset, shuffle=False, batch_size=self.args.eval_batch_size,
-                                     collate_fn=collate_fn)
+                                     collate_fn=self.get_collate_fn())
 
         # Eval!
         logger.info("***** Running evaluation on %s dataset *****", mode)
@@ -233,13 +234,8 @@ class Trainer(object):
         out_label_ids = None
         self.model.eval()
 
-        for batch in tqdm(eval_dataloader, desc="Evaluating"):
-            for k, v in batch.items():
-                batch[k] = v.to(self.device)
-
-            inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
-                      "token_type_ids": batch["token_type_ids"], "labels": batch["labels"]}
-
+        for step, batch in enumerate(tqdm(eval_dataloader, desc="Evaluating")):
+            inputs = self.batch_to_input(batch)
             with torch.no_grad():
                 outputs = self.model(**inputs)
                 tmp_eval_loss, logits = outputs[:2]
@@ -255,8 +251,8 @@ class Trainer(object):
                 out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
 
             # 调试阶段
-            if self.args.debug and batch == 4:
-                break
+            # if self.args.debug and step == 4:
+            #     break
 
         eval_loss = eval_loss / nb_eval_steps
         results = {"loss": eval_loss}
@@ -300,3 +296,23 @@ class Trainer(object):
         self.model = BertSequenceClassification.from_pretrained(model_dir, args=self.args)
         self.model.to(self.device)
         logger.info("***** Model Loaded *****")
+
+    def batch_to_input(self, batch):
+        for k, v in batch.items():
+            batch[k] = v.to(self.device)
+
+        if self.args.model_name == 'esim':
+            inputs = {"q1": batch["text_a_token"], "q1_lengths": batch["text_a_length"],
+                      "q2": batch["text_b_token"], "q2_lengths": batch["text_b_length"],
+                      "labels": batch["labels"]}
+        else:
+            inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
+                      "token_type_ids": batch["token_type_ids"], "labels": batch["labels"]}
+
+        return inputs
+
+    def get_collate_fn(self):
+        if self.args.model_name == 'esim':
+            return collate_fn_rnn
+        else:
+            return collate_fn

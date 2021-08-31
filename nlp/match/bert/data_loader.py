@@ -16,7 +16,9 @@ from transformers import BertTokenizer, BertConfig
 
 from nlp.match.bert.config import BERT_MODEL_NAME, ModelArguments
 from nlp.match.bert.model import BertSequenceClassification
-from nlp.match.bert.utils import logger, load_tokenizer
+from nlp.match.bert.utils import load_tokenizer, load_vocab, get_char_list, get_word_list, UNK_TOKEN, PAD_TOKEN, \
+    pad_seq
+from util.logger_utils import logger
 
 
 @dataclass
@@ -181,11 +183,110 @@ def collate_fn(features) -> Dict[str, Tensor]:
     }
 
 
-def load_dataset(args, tokenizer, data_type="train"):
+class SentenceSimDatasetForRnn(Dataset):
+    def __init__(self, examples: List[Example], vocab_file, max_length=64, mode="char"):
+        # char embedding or word embedding
+        self.mode = mode
+        self.text_a_list = []
+        self.text_a_token = []
+        self.text_a_length = []
+        self.text_a_mask = []
+        self.text_b_list = []
+        self.text_b_token = []
+        self.text_b_length = []
+        self.text_b_mask = []
+
+        self.labels = []
+        # load vocab
+        word2idx, idx2word, vocab = load_vocab(vocab_file)
+
+        self.max_length = max_length
+
+        for (ex_index, example) in enumerate(examples):
+            if ex_index % 5000 == 0:
+                logger.info("Writing example %d of %d" % (ex_index, len(examples)))
+
+            if mode == "char":
+                text_a = get_char_list(example.text_a)
+                text_b = get_char_list(example.text_b)
+            else:
+                text_a = get_word_list(example.text_a)
+                text_b = get_word_list(example.text_b)
+
+            self.text_a_list.append(text_a)
+            self.text_b_list.append(text_b)
+            self.labels.append(int(example.label))
+            # 1为[UNK]对应的索引
+            text_a_token = [word2idx[word] if word in word2idx.keys() else word2idx[UNK_TOKEN] for word in text_a]
+            text_b_token = [word2idx[word] if word in word2idx.keys() else word2idx[UNK_TOKEN] for word in text_b]
+
+            text_a_length = min(len(text_a_token), max_length)
+            text_b_length = min(len(text_b_token), max_length)
+
+            self.text_a_length.append(text_a_length)
+            self.text_b_length.append(text_b_length)
+
+            pad_text_a_token = pad_seq(text_a_token, max_len=max_length, value=word2idx[PAD_TOKEN])
+            pad_text_b_token = pad_seq(text_b_token, max_len=max_length, value=word2idx[PAD_TOKEN])
+
+            self.text_a_token.append(torch.LongTensor(pad_text_a_token))
+            self.text_b_token.append(torch.LongTensor(pad_text_b_token))
+
+            if ex_index < 5:
+                logger.info("*** Example ***")
+                logger.info("guid: %s" % example.guid)
+                logger.info("text_a: %s" % " ".join([str(x) for x in example.text_a]))
+                logger.info("text_a_token: %s" % " ".join([str(x) for x in text_a_token]))
+                logger.info("text_a_length: %s" % text_a_length)
+                logger.info("text_b: %s" % " ".join([str(x) for x in example.text_b]))
+                logger.info("text_b_token: %s" % " ".join([str(x) for x in text_b_token]))
+                logger.info("text_b_length: %s" % text_b_length)
+                logger.info("label: %s" % example.label)
+
+        logger.info(f"读取完毕:{len(self.labels)}")
+
+    def __len__(self):
+        return len(self.labels)
+
+    def __getitem__(self, item):
+        return {
+            "text_a_token": self.text_a_token[item],
+            "text_a_length": self.text_a_length[item],
+            "text_b_token": self.text_b_token[item],
+            "text_b_length": self.text_b_length[item],
+            "labels": self.labels[item],
+        }
+
+
+def collate_fn_rnn(features) -> Dict[str, Tensor]:
+    batch_text_a_token = [feature["text_a_token"] for feature in features]
+    batch_text_a_length = torch.tensor([feature["text_a_length"] for feature in features], dtype=torch.long)
+    batch_text_b_token = [feature["text_b_token"] for feature in features]
+    batch_text_b_length = torch.tensor([feature["text_b_length"] for feature in features], dtype=torch.long)
+    batch_labels = torch.tensor([feature["labels"] for feature in features], dtype=torch.long)
+
+    # padding
+    batch_text_a_token = pad_sequence(batch_text_a_token, batch_first=True, padding_value=0)
+    batch_text_b_token = pad_sequence(batch_text_b_token, batch_first=True, padding_value=0)
+
+    return {
+        "text_a_token": batch_text_a_token,
+        "text_a_length": batch_text_a_length,
+        "text_b_token": batch_text_b_token,
+        "text_b_length": batch_text_b_length,
+        "labels": batch_labels,
+    }
+
+
+def load_dataset(args, tokenizer=None, data_type="train"):
     max_length = args.train_max_seq_length if data_type == 'train' else args.eval_max_seq_length
-    cached_features_file = 'cached_{}-{}_{}_{}_{}'.format(args.model_name, data_type,
-                                                          list(filter(None, args.model_name_or_path.split('/'))).pop(),
-                                                          str(max_length), args.task_name)
+    if str(args.model_name).lower().find("bert") > -1:
+        cached_features_file = 'cached_{}-{}_{}_{}_{}'.format(args.model_name, data_type,
+                                                              list(filter(None,
+                                                                          args.model_name_or_path.split('/'))).pop(),
+                                                              str(max_length), args.task_name)
+    else:
+        cached_features_file = 'cached_{}-{}_{}_{}'.format(args.model_name, data_type, str(max_length), args.task_name)
 
     if os.path.exists(cached_features_file) and not args.overwrite_cache:
         logger.info("Loading dataset from cached file %s", cached_features_file)
@@ -202,7 +303,11 @@ def load_dataset(args, tokenizer, data_type="train"):
             file_name = args.dev_file
 
         logger.info("Creating dataset file at %s", file_name)
-        dataset = SentenceSimDataset(read_data(file_name), max_length=max_length, tokenizer=tokenizer)
+        if str(args.model_name).lower().find("bert") > -1:
+            dataset = SentenceSimDataset(read_data(file_name), max_length=max_length, tokenizer=tokenizer)
+        else:
+            dataset = SentenceSimDatasetForRnn(read_data(file_name), vocab_file=args.vocab_file, max_length=max_length,
+                                               mode=args.vocab_mode)
         torch.save(dataset, cached_features_file)
         logger.info("Catching dataset file at %s,length: %s", cached_features_file, len(dataset))
 
@@ -210,9 +315,11 @@ def load_dataset(args, tokenizer, data_type="train"):
 
 
 if __name__ == '__main__':
+    logger.info('tes')
+
+    args = ModelArguments(save_steps=100, num_relations=2)
     # 构建分词器
-    tokenizer = load_tokenizer()
-    args = ModelArguments(save_steps=100)
+    tokenizer = load_tokenizer(args=args)
     train_dataset = load_dataset(args, tokenizer=tokenizer, data_type="test")
     print(train_dataset[0])
 
@@ -230,13 +337,12 @@ if __name__ == '__main__':
     print(type(batch["labels"]))
     print(batch["labels"].shape)
 
-    args = ModelArguments(num_relations=2)
     config = BertConfig.from_pretrained(
         args.model_name_or_path,
         num_labels=args.num_labels,
         finetuning_task=args.task_name
     )
-    model = BertSequenceClassification.from_pretrained(args.model_name_or_path, config=config)
+    model = BertSequenceClassification.from_pretrained(args.model_name_or_path, config=config, args=args)
 
     inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
               "token_type_ids": batch["token_type_ids"], "labels": batch["labels"]}

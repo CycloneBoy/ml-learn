@@ -53,10 +53,17 @@ def get_log_file_name(file_name):
 
 
 def get_log(filename, level='info'):
-    my_file_name = "{}/data/log/{}".format(WORK_DIR,filename)
+    my_file_name = "{}/data/log/{}".format(WORK_DIR, filename)
     my_logger = Logger(my_file_name, level=level)
     return my_logger.logger
 
+
+def init_logger(filename='test'):
+    log = Logger('log/{}_{}.log'.format(filename, get_time()), level='debug')
+    return log.logger
+
+
+logger = init_logger("test")
 
 if __name__ == '__main__':
     get_log("info2.log").info("test")
