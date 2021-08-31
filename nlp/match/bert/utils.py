@@ -12,7 +12,7 @@ from datetime import timedelta
 import numpy as np
 import torch
 from sklearn.metrics import f1_score, precision_score, recall_score
-from transformers import BertTokenizer
+from transformers import BertTokenizer, XLNetTokenizer, DistilBertTokenizer
 
 from nlp.match.bert.config import BERT_PATH
 from util.logger_utils import Logger
@@ -95,8 +95,13 @@ def check_file_exists(filename, delete=False):
         print("文件夹不存在,创建目录:{}".format(dir_name))
 
 
-def load_tokenizer(model_name_or_path=BERT_PATH):
-    tokenizer = BertTokenizer.from_pretrained(model_name_or_path)
+def load_tokenizer(model_name_or_path=BERT_PATH, args=None):
+    if "xlnet" == args.pretrained_model_name:
+        tokenizer = XLNetTokenizer.from_pretrained(model_name_or_path)
+    elif "bert-distil" == args.pretrained_model_name:
+        tokenizer = DistilBertTokenizer.from_pretrained(model_name_or_path)
+    else:
+        tokenizer = BertTokenizer.from_pretrained(model_name_or_path)
     return tokenizer
 
 

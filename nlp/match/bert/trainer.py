@@ -11,10 +11,10 @@ import torch
 from tensorboardX import SummaryWriter
 from torch.utils.data import DataLoader, RandomSampler
 from tqdm import tqdm
-from transformers import BertConfig, AdamW, get_linear_schedule_with_warmup
+from transformers import BertConfig, AdamW, get_linear_schedule_with_warmup, XLNetConfig
 
 from nlp.match.bert.data_loader import collate_fn
-from nlp.match.bert.model import BertSequenceClassification
+from nlp.match.bert.model import BertSequenceClassification, XlnetSequenceClassification
 from nlp.match.bert.utils import compute_metrics, load_tokenizer, load_tag, logger, get_time_dif, get_checkpoint_dir
 
 
@@ -24,6 +24,7 @@ from nlp.match.bert.utils import compute_metrics, load_tokenizer, load_tag, logg
 class Trainer(object):
     def __init__(self, args, train_dataset=None, dev_dataset=None, test_dataset=None):
         self.args = args
+        self.pretrained_model_name = args.pretrained_model_name
         self.train_dataset = train_dataset
         self.dev_dataset = dev_dataset
         self.test_dataset = test_dataset
@@ -31,25 +32,55 @@ class Trainer(object):
         self.tags, self.tag2id, self.id2tag = load_tag()
         self.num_labels = len(self.tags)
 
-        self.config = BertConfig.from_pretrained(
-            args.model_name_or_path,
-            num_labels=self.num_labels,
-            finetuning_task=args.task_name,
-            id2label=self.id2tag,
-            label2id=self.tag2id,
-        )
-        self.model = BertSequenceClassification.from_pretrained(args.model_name_or_path, config=self.config, args=args)
-        self.tokenizer = load_tokenizer(args.model_name_or_path)
+        self.config = None
+        self.build_pretrained_config()
+        self.model = None
+        self.build_model()
+
+        self.tokenizer = load_tokenizer(args.model_name_or_path, args)
 
         # GPU or CPU
         self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
         self.model.to(self.device)
+
+    def build_pretrained_config(self):
+        if "xlnet" == self.pretrained_model_name:
+            self.config = XLNetConfig.from_pretrained(
+                self.args.model_name_or_path,
+                num_labels=self.num_labels,
+                finetuning_task=self.args.task_name,
+                id2label=self.id2tag,
+                label2id=self.tag2id,
+            )
+        else:
+            self.config = BertConfig.from_pretrained(
+                self.args.model_name_or_path,
+                num_labels=self.num_labels,
+                finetuning_task=self.args.task_name,
+                id2label=self.id2tag,
+                label2id=self.tag2id,
+            )
+
+    def build_model(self):
+
+        if "xlnet" == self.pretrained_model_name:
+            self.model = XlnetSequenceClassification.from_pretrained(self.args.model_name_or_path,
+                                                                     config=self.config, args=self.args)
+        else:
+            self.model = BertSequenceClassification.from_pretrained(self.args.model_name_or_path,
+                                                                    config=self.config, args=self.args)
 
     def train(self):
         train_sampler = RandomSampler(self.train_dataset)
         train_dataloader = DataLoader(self.train_dataset, sampler=train_sampler,
                                       batch_size=self.args.train_batch_size,
                                       collate_fn=collate_fn)
+
+        eval_steps = len(train_dataloader)
+        save_steps = eval_steps
+        if self.args.debug:
+            eval_steps = 4
+            save_steps = 100
 
         t_total = len(train_dataloader) * self.args.epoch
         num_warmup_steps = t_total * self.args.warmup
@@ -132,7 +163,8 @@ class Trainer(object):
                 global_step += 1
 
                 # 每多少轮输出在训练集和验证集上的效果
-                if global_step % self.args.eval_steps == 0:
+                if global_step % eval_steps == 0:
+                    # if global_step % self.args.eval_steps == 0:
                     # if global_step % len(train_dataloader) == 0:
                     metrics_result = self.evaluate("dev")  # There is no dev set for semeval task
                     time_dif = get_time_dif(start_time)
@@ -157,7 +189,9 @@ class Trainer(object):
                     writer.add_scalar("recall/dev", metrics_result["recall"], global_step)
 
                 # 每多少轮保存一次
-                if global_step % self.args.save_steps == 0:
+                if global_step % save_steps == 0:
+                    # if global_step % self.args.save_steps == 0:
+                    # if global_step % len(train_dataloader) == 0:
                     self.save_model(global_step)
             logger.info('Epoch [{}/{}] finished, use time :{}'.format(epoch + 1, self.args.epoch,
                                                                       get_time_dif(epoch_start_time)))
@@ -220,7 +254,8 @@ class Trainer(object):
                 preds = np.append(preds, logits.detach().cpu().numpy(), axis=0)
                 out_label_ids = np.append(out_label_ids, inputs["labels"].detach().cpu().numpy(), axis=0)
 
-            if batch == 4:
+            # 调试阶段
+            if self.args.debug and batch == 4:
                 break
 
         eval_loss = eval_loss / nb_eval_steps
@@ -259,9 +294,9 @@ class Trainer(object):
 
         checkpoint_dir, max_step = get_checkpoint_dir(self.args.output_dir)
 
-        self.args = torch.load(os.path.join(self.args.output_dir, "training_args.bin"))
+        model_dir = os.path.join(self.args.output_dir, checkpoint_dir)
+        self.args = torch.load(os.path.join(model_dir, "training_args.bin"))
 
-        self.model = BertSequenceClassification.from_pretrained(os.path.join(self.args.output_dir, checkpoint_dir),
-                                                                args=self.args)
+        self.model = BertSequenceClassification.from_pretrained(model_dir, args=self.args)
         self.model.to(self.device)
         logger.info("***** Model Loaded *****")

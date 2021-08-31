@@ -32,5 +32,5 @@ def main(args):
 if __name__ == '__main__':
     tags, tag2id, id2tag = load_tag()
     model_args = ModelArguments(save_steps=100, num_relations=len(tags),
-                                train_batch_size=64, eval_batch_size=1)
+                                train_batch_size=64, eval_batch_size=1, debug=True)
     main(model_args)

@@ -8,6 +8,14 @@
 from dataclasses import dataclass, field
 
 WORK_DIR = "/home/sl/workspace/python/a2020/ml-learn/nlp/re/rbert"
+
+# albert: voidful/albert_chinese_base
+# bert: bert-base-chinese
+# roberta: hfl/chinese-bert-wwm-ext  hfl/chinese-roberta-wwm-ext
+# DistilBert: adamlin/bert-distil-chinese
+# xlnet: hfl/chinese-xlnet-base
+
+
 BERT_PATH = "/home/sl/workspace/data/nlp/bert-base-chinese"
 # BERT_PATH = "/home/sl/workspace/data/nlp/bert-ner"
 
@@ -26,6 +34,7 @@ class ModelArguments:
     model_name_or_path: str = field(default=BERT_PATH, metadata={"help": "BERT模型名称"})
     model_name: str = field(default="Bert", metadata={"help": "模型名称"})
     task_name: str = field(default="sts_1", metadata={"help": "任务名称"})
+    pretrained_model_name: str = field(default="bert", metadata={"help": "预训练模型名称"})
 
     train_file: str = field(default=DATA_DIR + "/train.csv", metadata={"help": "训练数据的路径"})
     dev_file: str = field(default=DATA_DIR + "/dev.csv", metadata={"help": "测试数据的路径"})
@@ -40,6 +49,7 @@ class ModelArguments:
     no_cuda: bool = field(default=True, metadata={"help": "是否不用CUDA"})
     output: bool = field(default=True, metadata={"help": "是否输出"})
     overwrite_cache: bool = field(default=False, metadata={"help": "是否覆盖缓存"})
+    debug: bool = field(default=True, metadata={"help": "是否正在调试"})
 
     epoch: int = field(default=5, metadata={"help": "训练的epoch"})
     train_batch_size: int = field(default=8, metadata={"help": "训练时的batch size"})
