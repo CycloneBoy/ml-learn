@@ -196,6 +196,7 @@ class Trainer(object):
                     self.save_model(global_step)
             logger.info('Epoch [{}/{}] finished, use time :{}'.format(epoch + 1, self.args.epoch,
                                                                       get_time_dif(epoch_start_time)))
+            pbar.close()
             if 'cuda' in str(self.device):
                 torch.cuda.empty_cache()
 
@@ -225,23 +226,32 @@ class Trainer(object):
                                      collate_fn=self.get_collate_fn())
 
         # Eval!
+        logger.info("")
         logger.info("***** Running evaluation on %s dataset *****", mode)
         logger.info("  Num examples = %d", len(dataset))
         logger.info("  Batch size = %d", self.args.eval_batch_size)
+        logger.info("  Step size = %d", len(dataset) / self.args.eval_batch_size)
         eval_loss = 0.0
         nb_eval_steps = 0
         preds = None
         out_label_ids = None
         self.model.eval()
 
-        for step, batch in enumerate(tqdm(eval_dataloader, desc="Evaluating")):
+        epoch_start_time = time.time()
+        for step, batch in enumerate(eval_dataloader):
+            nb_eval_steps += 1
+            if (step + 1) % (int(len(eval_dataloader) * 0.1) + 1) == 0:
+                eval_radio = (step + 1) / len(eval_dataloader)
+                time_dif = get_time_dif(epoch_start_time)
+                predict_time_dif = get_time_dif(epoch_start_time, radio=eval_radio)
+                logger.info(
+                    f"Evaluating[{step + 1}/{len(eval_dataloader)}]: {eval_radio * 100 :>5.2} %|  |[{time_dif}<{predict_time_dif} ,loss={eval_loss / nb_eval_steps:>5.2},time={time_dif}]")
             inputs = self.batch_to_input(batch)
             with torch.no_grad():
                 outputs = self.model(**inputs)
                 tmp_eval_loss, logits = outputs[:2]
 
                 eval_loss += tmp_eval_loss.mean().item()
-            nb_eval_steps += 1
 
             if preds is None:
                 preds = logits.detach().cpu().numpy()
@@ -274,8 +284,12 @@ class Trainer(object):
         output_dir = os.path.join(self.args.output_dir, "checkpoint-{}".format(global_step))
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
-        model_to_save = self.model.module if hasattr(self.model, "module") else self.model
-        model_to_save.save_pretrained(output_dir)
+
+        if self.args.model_name == 'esim':
+            torch.save(self.model, os.path.join(output_dir, f"{self.args.model_name}_model.bin"))
+        else:
+            model_to_save = self.model.module if hasattr(self.model, "module") else self.model
+            model_to_save.save_pretrained(output_dir)
 
         # Save training arguments together with the trained model
         torch.save(self.args, os.path.join(output_dir, "training_args.bin"))
@@ -293,7 +307,10 @@ class Trainer(object):
         model_dir = os.path.join(self.args.output_dir, checkpoint_dir)
         self.args = torch.load(os.path.join(model_dir, "training_args.bin"))
 
-        self.model = BertSequenceClassification.from_pretrained(model_dir, args=self.args)
+        if self.args.model_name == 'esim':
+            self.model = torch.load(os.path.join(model_dir, f"{self.args.model_name}_model.bin"))
+        else:
+            self.model = BertSequenceClassification.from_pretrained(model_dir, args=self.args)
         self.model.to(self.device)
         logger.info("***** Model Loaded *****")
 

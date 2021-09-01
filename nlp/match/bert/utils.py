@@ -12,7 +12,9 @@ from datetime import timedelta
 
 import jieba
 import numpy as np
+import pandas as pd
 import torch
+from gensim.models import Word2Vec
 from hanziconv import HanziConv
 from sklearn.metrics import f1_score, precision_score, recall_score
 from torch import nn
@@ -81,10 +83,10 @@ def now_str(format="%Y-%m-%d_%H"):
     return time.strftime(format, time.localtime())
 
 
-def get_time_dif(start_time):
+def get_time_dif(start_time, radio=1.0):
     """获取已使用时间"""
     end_time = time.time()
-    time_dif = end_time - start_time
+    time_dif = (end_time - start_time) / radio
     return timedelta(seconds=int(round(time_dif)))
 
 
@@ -321,6 +323,62 @@ def pad_seq(seq, max_len=64, value=0):
     x[:len(trunc)] = trunc
 
     return x
+
+
+def read_sentences(file_name, text_a='sentence1', text_b='sentence2', mode="char"):
+    df = pd.read_csv(file_name)
+    p = df[text_a].values
+    h = df[text_b].values
+
+    p_seg = [process_sentence(seq, mode=mode) for seq in p]
+    h_seg = [process_sentence(seq, mode=mode) for seq in h]
+    common_texts = []
+    common_texts.extend(p_seg)
+    common_texts.extend(h_seg)
+    return common_texts
+
+
+def process_sentence(text, mode="char"):
+    res = []
+    if mode == "char":
+        res = list(text.replace(" ", ""))
+    elif mode == "word":
+        res = list(jieba.cut(text.replace(" ", "")))
+
+    return res
+
+
+def read_all_sentences(args, mode="char"):
+    train_file = args.train_file
+    dev_file = args.dev_file
+    test_file = args.test_file
+    common_texts = []
+
+    for name in [train_file, dev_file, test_file]:
+        res_texts = read_sentences(name, mode=mode)
+        common_texts.extend(res_texts)
+
+    return common_texts
+
+
+def build_word2vec_by_type(args, out_dir="./word2vec", mode="char"):
+    common_texts = read_all_sentences(args, mode=mode)
+    model = Word2Vec(common_texts, size=100, window=5, min_count=3, workers=4)
+    os.makedirs(out_dir) if not os.path.exists(out_dir) else print(f"{out_dir} dir exists")
+    model.save(os.path.join(out_dir, f"{mode}2vec.model"))
+    model.wv.save_wordvec_format(os.path.join(out_dir, f"{mode}2vec.bin"), binary=False)
+
+    word_set = set()
+    for sample in common_texts:
+        for word in sample:
+            word_set.add(word)
+    with open(os.path.join(out_dir, f"{mode}_vocab.txt"), 'w', encoding='utf8') as f:
+        f.write("\n".join(sorted(list(word_set), reverse=True)))
+
+
+def build_word2vec(args, out_dir="./word2vec"):
+    build_word2vec_by_type(args, out_dir=out_dir, mode="word")
+    build_word2vec_by_type(args, out_dir=out_dir, mode="char")
 
 
 if __name__ == '__main__':

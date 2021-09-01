@@ -12,10 +12,9 @@ from nlp.match.bert.utils import load_tokenizer, check_file_exists, load_tag
 def main(args):
     tokenizer = load_tokenizer(args=args)
 
-    test_dataset = load_dataset(args, tokenizer=tokenizer, data_type="test")
     train_dataset = load_dataset(args, tokenizer=tokenizer, data_type="train")
     dev_dataset = load_dataset(args, tokenizer=tokenizer, data_type="dev")
-    # test_dataset = load_dataset(args, tokenizer=tokenizer, data_type="test")
+    test_dataset = load_dataset(args, tokenizer=tokenizer, data_type="test")
 
     check_file_exists(args.output_dir + "/test.txt")
     check_file_exists(args.eval_dir + "/test.txt")

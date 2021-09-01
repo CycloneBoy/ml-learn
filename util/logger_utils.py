@@ -7,6 +7,7 @@
 import logging
 import time
 from logging import handlers
+from pathlib import Path
 
 from util.constant import WORK_DIR
 
@@ -58,9 +59,34 @@ def get_log(filename, level='info'):
     return my_logger.logger
 
 
-def init_logger(filename='test'):
+def init_logger1(filename='test'):
     log = Logger('log/{}_{}.log'.format(filename, get_time()), level='debug')
     return log.logger
+
+
+def init_logger(log_file=None, log_file_level=logging.NOTSET):
+    '''
+    Example:
+        >>> init_logger(log_file)
+        >>> logger.info("abc'")
+    '''
+    if isinstance(log_file, Path):
+        log_file = str(log_file)
+
+    log_format = logging.Formatter(fmt='%(asctime)s %(levelname)s %(pathname)s[%(lineno)d]: %(message)s',
+                                   datefmt='%Y-%d-%m %H:%M:%S')
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(log_format)
+    logger.handlers = [console_handler]
+    if log_file and log_file != '':
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setLevel(log_file_level)
+        # file_handler.setFormatter(log_format)
+        logger.addHandler(file_handler)
+    return logger
 
 
 logger = init_logger("test")
