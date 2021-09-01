@@ -89,7 +89,7 @@ def init_logger(log_file=None, log_file_level=logging.NOTSET):
     return logger
 
 
-logger = init_logger("test")
+logger = init_logger("test.log")
 
 if __name__ == '__main__':
     get_log("info2.log").info("test")

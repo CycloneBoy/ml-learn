@@ -14,7 +14,7 @@ from tqdm import tqdm
 from transformers import BertConfig, AdamW, get_linear_schedule_with_warmup, XLNetConfig
 
 from nlp.match.bert.data_loader import collate_fn, collate_fn_rnn
-from nlp.match.bert.model import BertSequenceClassification, XlnetSequenceClassification, ESIM
+from nlp.match.bert.model import BertSequenceClassification, XlnetSequenceClassification, ESIM, BiLSTM, SiaGRU
 from nlp.match.bert.utils import compute_metrics, load_tokenizer, load_tag, get_time_dif, get_checkpoint_dir
 from util.logger_utils import logger
 
@@ -26,6 +26,7 @@ class Trainer(object):
         self.train_dataset = train_dataset
         self.dev_dataset = dev_dataset
         self.test_dataset = test_dataset
+        self.non_pretrained_model_list = ['esim', 'bilstm', 'siagru']
 
         self.tags, self.tag2id, self.id2tag = load_tag()
         self.num_labels = len(self.tags)
@@ -43,7 +44,7 @@ class Trainer(object):
         self.model.to(self.device)
 
     def build_pretrained_config(self):
-        if self.args.model_name == 'esim':
+        if self.args.model_name in self.non_pretrained_model_list:
             return
 
         if "xlnet" == self.pretrained_model_name:
@@ -68,6 +69,16 @@ class Trainer(object):
             self.model = ESIM(hidden_size=self.args.hidden_size, embeddings=self.args.embeddings,
                               dropout=self.args.dropout, num_labels=self.args.num_labels,
                               device=self.device)
+        elif self.args.model_name == 'bilstm':
+            self.model = BiLSTM(hidden_size=self.args.hidden_size, embeddings=self.args.embeddings,
+                                dropout=self.args.dropout, num_labels=self.args.num_labels,
+                                max_length=self.args.train_max_seq_length,
+                                device=self.device)
+
+        elif self.args.model_name == 'siagru':
+            self.model = SiaGRU(hidden_size=self.args.hidden_size, embeddings=self.args.embeddings,
+                                dropout=self.args.dropout, num_labels=self.args.num_labels,
+                                device=self.device)
         elif self.args.model_name == 'bert':
             if "xlnet" == self.pretrained_model_name:
                 self.model = XlnetSequenceClassification.from_pretrained(self.args.model_name_or_path,
@@ -84,9 +95,11 @@ class Trainer(object):
 
         eval_steps = len(train_dataloader)
         save_steps = eval_steps
+        train_print_steps = int(len(train_dataloader) * 0.05) + 1
         if self.args.debug:
             eval_steps = 4
             save_steps = 100
+            train_print_steps = 1
 
         t_total = len(train_dataloader) * self.args.epoch
         num_warmup_steps = t_total * self.args.warmup
@@ -149,8 +162,18 @@ class Trainer(object):
                 loss.backward()
 
                 time_dif = get_time_dif(start_time)
-                pbar.set_postfix({'loss': loss.item(), 'time': time_dif})
-                pbar.update()
+                # pbar.set_postfix({'loss': loss.item(), 'time': time_dif})
+                # if (step + 1) % train_print_steps == 0:
+                #     pbar.update(train_print_steps)
+
+                if (step + 1) % train_print_steps == 0:
+                    eval_radio = (step + 1) / len(train_dataloader)
+                    epoch_time_dif = get_time_dif(epoch_start_time)
+                    predict_time_dif = get_time_dif(epoch_start_time, radio=eval_radio)
+                    logger.info(
+                        f"'Training-Batch[{epoch + 1}/{self.args.epoch}] {eval_radio * 100 :>5.3} %| "
+                        f"      |[{step + 1}/{len(train_dataloader)}]:[{epoch_time_dif}<{predict_time_dif} "
+                        f",loss={loss.item():>5.2},time={time_dif}]")
 
                 tr_loss += loss.item()
 
@@ -285,7 +308,7 @@ class Trainer(object):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        if self.args.model_name == 'esim':
+        if self.args.model_name in self.non_pretrained_model_list:
             torch.save(self.model, os.path.join(output_dir, f"{self.args.model_name}_model.bin"))
         else:
             model_to_save = self.model.module if hasattr(self.model, "module") else self.model
@@ -307,7 +330,7 @@ class Trainer(object):
         model_dir = os.path.join(self.args.output_dir, checkpoint_dir)
         self.args = torch.load(os.path.join(model_dir, "training_args.bin"))
 
-        if self.args.model_name == 'esim':
+        if self.args.model_name in self.non_pretrained_model_list:
             self.model = torch.load(os.path.join(model_dir, f"{self.args.model_name}_model.bin"))
         else:
             self.model = BertSequenceClassification.from_pretrained(model_dir, args=self.args)
@@ -322,6 +345,8 @@ class Trainer(object):
             inputs = {"q1": batch["text_a_token"], "q1_lengths": batch["text_a_length"],
                       "q2": batch["text_b_token"], "q2_lengths": batch["text_b_length"],
                       "labels": batch["labels"]}
+        elif self.args.model_name in ['bilstm', 'siagru']:
+            inputs = {"sent1": batch["text_a_token"], "sent2": batch["text_b_token"], "labels": batch["labels"]}
         else:
             inputs = {"input_ids": batch["input_ids"], "attention_mask": batch["attention_mask"],
                       "token_type_ids": batch["token_type_ids"], "labels": batch["labels"]}
@@ -329,7 +354,7 @@ class Trainer(object):
         return inputs
 
     def get_collate_fn(self):
-        if self.args.model_name == 'esim':
+        if self.args.model_name in self.non_pretrained_model_list:
             return collate_fn_rnn
         else:
             return collate_fn
