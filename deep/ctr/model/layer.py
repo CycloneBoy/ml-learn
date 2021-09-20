@@ -55,3 +55,75 @@ class FactorizationMachine(nn.Module):
         if self.reduce_sum:
             ix = torch.sum(ix, dim=1, keepdim=True)
         return 0.5 * ix
+
+
+class AnovaKernel(nn.Module):
+
+    def __init__(self, order, reduce_sum=True):
+        super().__init__()
+        self.order = order
+        self.reduce_sum = reduce_sum
+
+    def forward(self, x):
+        """
+        :param x: Float tensor of size ``(batch_size, num_fields, embed_dim)``
+        """
+        batch_size, num_fields, embed_dim = x.shape
+        a_prev = torch.ones((batch_size, num_fields + 1, embed_dim), dtype=torch.float).to(x.device)
+        for t in range(self.order):
+            a = torch.zeros((batch_size, num_fields + 1, embed_dim), dtype=torch.float).to(x.device)
+            a[:, t + 1:, :] += x[:, t:, :] * a_prev[:, t:-1, :]
+            a = torch.cumsum(a, dim=1)
+            a_prev = a
+        if self.reduce_sum:
+            return torch.sum(a[:, -1, :], dim=-1, keepdim=True)
+        else:
+            return a[:, -1, :]
+
+
+class FieldAwareFactorizationMachine(nn.Module):
+
+    def __init__(self, field_dims, embed_dim):
+        super().__init__()
+        self.num_fields = len(field_dims)
+        self.embeddings = torch.nn.ModuleList([
+            torch.nn.Embedding(sum(field_dims), embed_dim) for _ in range(self.num_fields)
+        ])
+        self.offsets = np.array((0, *np.cumsum(field_dims)[:-1]), dtype=np.long)
+        for embedding in self.embeddings:
+            nn.init.xavier_uniform_(embedding.weight.data)
+
+    def forward(self, x):
+        """
+        :param x: Long tensor of size ``(batch_size, num_fields)``
+        """
+        x = x + x.new_tensor(self.offsets).unsqueeze(0)
+        xs = [self.embeddings[i](x) for i in range(self.num_fields)]
+        ix = list()
+        for i in range(self.num_fields - 1):
+            for j in range(i + 1, self.num_fields):
+                ix.append(xs[j][:, i] * xs[i][:, j])
+        ix = torch.stack(ix, dim=1)
+        return ix
+
+
+class MultiLayerPerceptron(torch.nn.Module):
+
+    def __init__(self, input_dim, embed_dims, dropout, output_layer=True):
+        super().__init__()
+        layers = list()
+        for embed_dim in embed_dims:
+            layers.append(torch.nn.Linear(input_dim, embed_dim))
+            layers.append(torch.nn.BatchNorm1d(embed_dim))
+            layers.append(torch.nn.ReLU())
+            layers.append(torch.nn.Dropout(p=dropout))
+            input_dim = embed_dim
+        if output_layer:
+            layers.append(torch.nn.Linear(input_dim, 1))
+        self.mlp = torch.nn.Sequential(*layers)
+
+    def forward(self, x):
+        """
+        :param x: Float tensor of size ``(batch_size, embed_dim)``
+        """
+        return self.mlp(x)

@@ -47,3 +47,11 @@ MIT
 ## other
 
 https://www.cnblogs.com/pinard/p/6370127.html
+
+| Model | test auc |
+|-------|-----------|
+| Logistic Regression | |
+| Factorization Machine | 0.814 |
+| Higher-Order Factorization Machines | 0.8138 |
+| Factorization-Supported Neural Network | 0.798 |
+| Wide&Deep  | 0.792 |

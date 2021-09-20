@@ -10,8 +10,12 @@ from sklearn.metrics import roc_auc_score
 from torch.utils.data import DataLoader
 
 from deep.ctr.data.moivelens import MovieLens1MDataset, MovieLens20MDataset
+from deep.ctr.model.ffm import FieldAwareFactorizationMachineModel
 from deep.ctr.model.fm import FactorizationMachineModel
+from deep.ctr.model.fnn import FactorizationSupportedNeuralNetworkModel
+from deep.ctr.model.hofm import HighOrderFactorizationMachineModel
 from deep.ctr.model.lr import LogisticRegressionModel
+from deep.ctr.model.wd import WideAndDeepModel
 
 
 def get_dataset(name, path):
@@ -36,14 +40,14 @@ def get_model(name, dataset):
         return LogisticRegressionModel(field_dims)
     elif name == 'fm':
         return FactorizationMachineModel(field_dims, embed_dim=16)
-    # elif name == 'hofm':
-    #     return HighOrderFactorizationMachineModel(field_dims, order=3, embed_dim=16)
-    # elif name == 'ffm':
-    #     return FieldAwareFactorizationMachineModel(field_dims, embed_dim=4)
-    # elif name == 'fnn':
-    #     return FactorizationSupportedNeuralNetworkModel(field_dims, embed_dim=16, mlp_dims=(16, 16), dropout=0.2)
-    # elif name == 'wd':
-    #     return WideAndDeepModel(field_dims, embed_dim=16, mlp_dims=(16, 16), dropout=0.2)
+    elif name == 'hofm':
+        return HighOrderFactorizationMachineModel(field_dims, order=3, embed_dim=16)
+    elif name == 'ffm':
+        return FieldAwareFactorizationMachineModel(field_dims, embed_dim=4)
+    elif name == 'fnn':
+        return FactorizationSupportedNeuralNetworkModel(field_dims, embed_dim=16, mlp_dims=(16, 16), dropout=0.2)
+    elif name == 'wd':
+        return WideAndDeepModel(field_dims, embed_dim=16, mlp_dims=(16, 16), dropout=0.2)
     # elif name == 'ipnn':
     #     return ProductNeuralNetworkModel(field_dims, embed_dim=16, mlp_dims=(16,), method='inner', dropout=0.2)
     # elif name == 'opnn':
@@ -168,7 +172,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_name', default='movielens1M')
     parser.add_argument('--dataset_path', help='criteo/train.txt, avazu/train, or ml-1m/ratings.dat',
                         default='/home/sl/workspace/data/nlp/ml-1m/ratings.dat')
-    parser.add_argument('--model_name', default='fm')
+    parser.add_argument('--model_name', default='wd')
     parser.add_argument('--epoch', type=int, default=100)
     parser.add_argument('--learning_rate', type=float, default=0.001)
     parser.add_argument('--batch_size', type=int, default=1024)
