@@ -54,4 +54,5 @@
 */*/__pycache__
 */*/*/__pycache__
 */*/*/*/__pycache__
-/util/.pytest_cache/*
+/*/.pytest_cache/*
+*/*/.pytest_cache/*
