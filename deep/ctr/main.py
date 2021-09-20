@@ -15,6 +15,7 @@ from deep.ctr.model.fm import FactorizationMachineModel
 from deep.ctr.model.fnn import FactorizationSupportedNeuralNetworkModel
 from deep.ctr.model.hofm import HighOrderFactorizationMachineModel
 from deep.ctr.model.lr import LogisticRegressionModel
+from deep.ctr.model.ncf import NeuralCollaborativeFiltering
 from deep.ctr.model.pnn import ProductNeuralNetworkModel
 from deep.ctr.model.wd import WideAndDeepModel
 
@@ -57,12 +58,12 @@ def get_model(name, dataset):
     #     return DeepCrossNetworkModel(field_dims, embed_dim=16, num_layers=3, mlp_dims=(16, 16), dropout=0.2)
     # elif name == 'nfm':
     #     return NeuralFactorizationMachineModel(field_dims, embed_dim=64, mlp_dims=(64,), dropouts=(0.2, 0.2))
-    # elif name == 'ncf':
-    #     # only supports MovieLens dataset because for other datasets user/item colums are indistinguishable
-    #     assert isinstance(dataset, MovieLens20MDataset) or isinstance(dataset, MovieLens1MDataset)
-    #     return NeuralCollaborativeFiltering(field_dims, embed_dim=16, mlp_dims=(16, 16), dropout=0.2,
-    #                                         user_field_idx=dataset.user_field_idx,
-    #                                         item_field_idx=dataset.item_field_idx)
+    elif name == 'ncf':
+        # only supports MovieLens dataset because for other datasets user/item colums are indistinguishable
+        assert isinstance(dataset, MovieLens20MDataset) or isinstance(dataset, MovieLens1MDataset)
+        return NeuralCollaborativeFiltering(field_dims, embed_dim=16, mlp_dims=(16, 16), dropout=0.2,
+                                            user_field_idx=dataset.user_field_idx,
+                                            item_field_idx=dataset.item_field_idx)
     # elif name == 'fnfm':
     #     return FieldAwareNeuralFactorizationMachineModel(field_dims, embed_dim=4, mlp_dims=(64,), dropouts=(0.2, 0.2))
     # elif name == 'dfm':
@@ -173,7 +174,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_name', default='movielens1M')
     parser.add_argument('--dataset_path', help='criteo/train.txt, avazu/train, or ml-1m/ratings.dat',
                         default='/home/sl/workspace/data/nlp/ml-1m/ratings.dat')
-    parser.add_argument('--model_name', default='opnn')
+    parser.add_argument('--model_name', default='ncf')
     parser.add_argument('--epoch', type=int, default=100)
     parser.add_argument('--learning_rate', type=float, default=0.001)
     parser.add_argument('--batch_size', type=int, default=1024)

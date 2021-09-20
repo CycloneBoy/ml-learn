@@ -56,3 +56,4 @@ https://www.cnblogs.com/pinard/p/6370127.html
 | Factorization-Supported Neural Network | 0.798 |
 | Wide&Deep  | 0.792 |
 | Product Neural Network | 0.7957 , 0.8023|
+| Neural Collaborative Filtering | 0.7998|
