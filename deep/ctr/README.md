@@ -55,5 +55,8 @@ https://www.cnblogs.com/pinard/p/6370127.html
 | Higher-Order Factorization Machines | 0.8138 |
 | Factorization-Supported Neural Network | 0.798 |
 | Wide&Deep  | 0.792 |
-| Product Neural Network | 0.7957 , 0.8023|
-| Neural Collaborative Filtering | 0.7998|
+| Product Neural Network | 0.7957 , 0.8023 |
+| Neural Collaborative Filtering | 0.7998 |
+| Deep Cross Network | 0.8009 |
+| DeepFM | 0.7936 |
+| Neural Factorization Machine | 0.7757 |
