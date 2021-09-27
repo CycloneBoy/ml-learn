@@ -8,16 +8,16 @@
 文件处理的工具类
 
 '''
+import glob
+import json
+import os
+import random
+
 import pandas as pd
 
-from util.constant import DATA_TXT_NEWS_DIR, DATA_TXT_STOP_WORDS_GITHUB_DIR, BILIBILI_VIDEO_IMAGE_DIR, DATA_HTML_DIR, \
+from util.constant import DATA_TXT_NEWS_DIR, DATA_TXT_STOP_WORDS_GITHUB_DIR, DATA_HTML_DIR, \
     DATA_QUESTION_ANSWER_DIR, DATA_CACHE_DIR
 from util.logger_utils import get_log
-import os
-import glob
-import random
-import json
-
 from util.nlp_utils import extract_chinese
 
 log = get_log("{}.log".format(str(os.path.split(__file__)[1]).replace(".py", '')))
@@ -134,6 +134,7 @@ def read_to_text(path, encoding='utf-8'):
         content = f.read()
         return content
 
+
 def read_to_text_list(path, encoding='utf-8'):
     """
     读取txt文件,默认utf8格式,
@@ -145,6 +146,7 @@ def read_to_text_list(path, encoding='utf-8'):
     with open(path, 'r', encoding=encoding) as f:
         list_line = f.readlines()
         return list_line
+
 
 def list_file(file_dir, endswith=""):
     """读取文件列表"""
@@ -164,11 +166,12 @@ def delete_file(path):
     """
 
     for i in os.listdir(path):
-        path_children = os.path.join(path,i)
+        path_children = os.path.join(path, i)
         if os.path.isfile(path_children):
             os.remove(path_children)
-        else:# 递归, 删除目录下的所有文件
+        else:  # 递归, 删除目录下的所有文件
             delete_file(path_children)
+
 
 def read_and_process(path):
     """
@@ -198,6 +201,20 @@ def build_qa_dataset(file_dir):
         save_to_text(filename, contents, 'a')
 
     log.info("文件数：{}，总共问题数量：{}".format(len(file_list), total))
+
+
+def get_path_dir(file_dir):
+    """
+    读取文件夹下的所有子文件夹
+    :param file_dir:
+    :return:
+    """
+    dir_list = []
+    # files_list = []
+    for root, dirs, files in os.walk(file_dir):
+        dir_list.extend(dirs)
+        # files_list.extend(files)
+    return dir_list
 
 
 if __name__ == '__main__':
