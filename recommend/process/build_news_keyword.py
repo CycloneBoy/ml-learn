@@ -20,7 +20,7 @@
 """
 import json
 
-from recommend.utils.constants import TABLE_TFIDF, TABLE_TEXT_RANK
+from recommend.utils.constants import TABLE_TFIDF, TABLE_TEXT_RANK, TABLE_ARTICLE_PROFILE
 from recommend.utils.spark_utils import get_spark, read_mysql_to_df, save_df_to_mysql
 
 
@@ -62,7 +62,7 @@ def build_keyword(spark):
 
     article_profile = article_profile.rdd.map(build_row_to_json_func).toDF(
         ["article_id", "channel_id", "keywords", "topics"])
-    save_df_to_mysql(article_profile, "t_news_article_profile")
+    save_df_to_mysql(article_profile, TABLE_ARTICLE_PROFILE)
 
 
 # 合并关键词权重合并成字典
