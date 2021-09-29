@@ -18,10 +18,25 @@ def read_mysql_to_df(spark, table):
     return data
 
 
-def get_spark():
+def read_csv_to_df(spark, path):
+    data = spark.read.format('csv').option('header', 'true').load(path)
+    return data
+
+
+def save_df_to_csv(df, path):
+    df.repartition(1).write.option("header", "true").mode('overwrite') \
+        .csv(path)
+
+
+def show_df(df):
+    df.printSchema()
+    df.show(10, truncate=False)
+
+
+def get_spark(appName="sql"):
     spark = SparkSession. \
         Builder(). \
-        appName('sql'). \
+        appName(appName). \
         master('local'). \
         getOrCreate()
     return spark
