@@ -38,3 +38,11 @@ MOVIE_SAMPLEDATA_PATH = f"{MODEL_BASE_PATH}/sampledata"
 MOVIE_RATING_VEC_EMBEDDING_PATH = f"{MOVIE_SAMPLEDATA_PATH}/item2vecEmb.txt"
 MOVIE_RATING_GRAPH_EMBEDDING_PATH = f"{MOVIE_SAMPLEDATA_PATH}/itemGraphEmb.txt"
 MOVIE_USER_EMBEDDING_PATH = f"{MOVIE_SAMPLEDATA_PATH}/userEmb.txt"
+
+MOVIE_TF_TRAINING_SAMPLES_PATH = f"{MOVIE_SAMPLEDATA_PATH}/trainingSamples.csv"
+MOVIE_TF_TEST_SAMPLES_PATH = f"{MOVIE_SAMPLEDATA_PATH}/testSamples.csv"
+
+# genre features vocabulary
+MOVIE_GENRE_VOCAB = ['Film-Noir', 'Action', 'Adventure', 'Horror', 'Romance', 'War', 'Comedy', 'Western', 'Documentary',
+                     'Sci-Fi', 'Drama', 'Thriller',
+                     'Crime', 'Fantasy', 'Animation', 'IMAX', 'Mystery', 'Children', 'Musical']
