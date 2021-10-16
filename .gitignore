@@ -56,3 +56,7 @@
 */*/*/*/__pycache__
 /*/.pytest_cache/*
 */*/.pytest_cache/*
+
+/deep/tf/.ipynb_checkpoints
+/deep/tf/logs
+/deep/tf/*.tsv
