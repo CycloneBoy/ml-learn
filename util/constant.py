@@ -49,6 +49,9 @@ DATA_THUCNEWS_DIR = '/home/sl/workspace/python/a2020/ml-learn/data/nlp/THUCNews'
 
 # sgns.sogou.char  词嵌入
 DATA_EMBEDDING_SOGOU_CHAR = "/home/sl/workspace/data/nlp/sgns.sogou.char"
+# sgns.financial.bigram-char
+DATA_EMBEDDING_FINANCIAL_BIGRAM_CHAR = f"{DATA_CACHE_DIR}/sgns.financial.bigram-char"
+# DATA_EMBEDDING_FINANCIAL_BIGRAM_CHAR = f"{DATA_CACHE_DIR}/sgns.financial.bigram-char.bz2"
 
 NLP_PRETRAIN_DIR = DATA_CACHE_DIR
 # BERT_BASE_CHINESE = '/home/sl/workspace/data/nlp/bert-base-chinese'
@@ -84,8 +87,7 @@ TEST_QA_9 = "646|巴黎进、巴塞罗那出！西班牙行程安排提问|第�
 TEST_QA_10 = "866|求助，圣诞节的时候国内哪里好玩啊？|哈尔滨当然冷。。。。不过圣诞气氛够强的，我想都是香港或者外国吧我上年去了新加坡，挺好的，不算很热。。。整条乌节路都是各式各样的圣诞树哦。。。还有很多美食。。|2011-10-12 04:58"
 
 TEST_QA_LIST_10 = [TEST_QA_1, TEST_QA_2, TEST_QA_3, TEST_QA_4, TEST_QA_5, TEST_QA_6, TEST_QA_7, TEST_QA_8, TEST_QA_9,
-                TEST_QA_10]
-
+                   TEST_QA_10]
 
 # ML
 ML_DATA_DIR = os.path.join(WORK_DIR, "data/ml")
@@ -93,21 +95,36 @@ ML_DATA_DIR = os.path.join(WORK_DIR, "data/ml")
 SEEDS_DATA_DIR = os.path.join(ML_DATA_DIR, 'seeds_dataset.txt')
 CONCRETE_DATA_DIR = os.path.join(ML_DATA_DIR, 'Concrete_Data.csv')
 
-
 # 摘要测试数据
-TEST_SUMMARY_1 = ("方直科技拟以自有资金1.2亿元共同投资设立嘉道方直投资基金","多知网5月26日消息，今日，方直科技发公告，拟用自有资金人民币1.2亿元，与深圳嘉道谷投资管理有限公司、深圳嘉道功程股权投资基金（有限合伙）共同发起设立嘉道方直教育产业投资基金（暂定名）。该基金认缴出资总规模为人民币3.01亿元。基金的出资方式具体如下：![\\](http://www.duozhi.com/uploadfile/2017/0526/20170526092512491.png)出资进度方面，基金合伙人的出资应于基金成立之日起四年内分四期缴足，每期缴付7525万元；各基金合伙人每期按其出资比例缴付。合伙期限为11年，投资目标为教育领域初创期或成长期企业。截止公告披露日，深圳嘉道谷投资管理有限公司股权结构如下:![\\](http://www.duozhi.com/uploadfile/2017/0526/20170526092525724.png)截止公告披露日，深圳嘉道功程股权投资基金产权结构如下:![\\](http://www.duozhi.com/uploadfile/2017/0526/20170526092538802.png)公告还披露，方直科技将探索在中小学教育、在线教育、非学历教育、学前教育、留学咨询等教育行业其他分支领域的投资。方直科技2016年营业收入9691万元，营业利润1432万元，归属于普通股股东的净利润1847万元。（多知网 黎珊）")
+TEST_SUMMARY_1 = ("方直科技拟以自有资金1.2亿元共同投资设立嘉道方直投资基金",
+                  "多知网5月26日消息，今日，方直科技发公告，拟用自有资金人民币1.2亿元，与深圳嘉道谷投资管理有限公司、深圳嘉道功程股权投资基金（有限合伙）共同发起设立嘉道方直教育产业投资基金（暂定名）。该基金认缴出资总规模为人民币3.01亿元。基金的出资方式具体如下：![\\](http://www.duozhi.com/uploadfile/2017/0526/20170526092512491.png)出资进度方面，基金合伙人的出资应于基金成立之日起四年内分四期缴足，每期缴付7525万元；各基金合伙人每期按其出资比例缴付。合伙期限为11年，投资目标为教育领域初创期或成长期企业。截止公告披露日，深圳嘉道谷投资管理有限公司股权结构如下:![\\](http://www.duozhi.com/uploadfile/2017/0526/20170526092525724.png)截止公告披露日，深圳嘉道功程股权投资基金产权结构如下:![\\](http://www.duozhi.com/uploadfile/2017/0526/20170526092538802.png)公告还披露，方直科技将探索在中小学教育、在线教育、非学历教育、学前教育、留学咨询等教育行业其他分支领域的投资。方直科技2016年营业收入9691万元，营业利润1432万元，归属于普通股股东的净利润1847万元。（多知网 黎珊）")
 
 TEST_SUMMARY_DOC = "是上世纪90年代末提出的一种计算网页权重的算法。" \
-      "当时，互联网技术突飞猛进，各种网页网站爆炸式增长，" \
-      "业界急需一种相对比较准确的网页重要性计算方法，" \
-      "是人们能够从海量互联网世界中找出自己需要的信息。" \
-      "百度百科如是介绍他的思想:PageRank通过网络浩瀚的超链接关系来确定一个页面的等级。" \
-      "Google把从A页面到B页面的链接解释为A页面给B页面投票，" \
-      "Google根据投票来源甚至来源的来源，即链接到A页面的页面" \
-      "和投票目标的等级来决定新的等级。简单的说，" \
-      "一个高等级的页面可以使其他低等级页面的等级提升。" \
-      "PageRank The PageRank Citation Ranking: Bringing Order to the Web，" \
-      "具体说来就是，PageRank有两个基本思想，也可以说是假设，" \
-      "即数量假设：一个网页被越多的其他页面链接，就越重）；" \
-      "质量假设：一个网页越是被高质量的网页链接，就越重要。" \
-      "总的来说就是一句话，从全局角度考虑，获取重要的信息。"
+                   "当时，互联网技术突飞猛进，各种网页网站爆炸式增长，" \
+                   "业界急需一种相对比较准确的网页重要性计算方法，" \
+                   "是人们能够从海量互联网世界中找出自己需要的信息。" \
+                   "百度百科如是介绍他的思想:PageRank通过网络浩瀚的超链接关系来确定一个页面的等级。" \
+                   "Google把从A页面到B页面的链接解释为A页面给B页面投票，" \
+                   "Google根据投票来源甚至来源的来源，即链接到A页面的页面" \
+                   "和投票目标的等级来决定新的等级。简单的说，" \
+                   "一个高等级的页面可以使其他低等级页面的等级提升。" \
+                   "PageRank The PageRank Citation Ranking: Bringing Order to the Web，" \
+                   "具体说来就是，PageRank有两个基本思想，也可以说是假设，" \
+                   "即数量假设：一个网页被越多的其他页面链接，就越重）；" \
+                   "质量假设：一个网页越是被高质量的网页链接，就越重要。" \
+                   "总的来说就是一句话，从全局角度考虑，获取重要的信息。"
+
+# 多标签
+QA_DATA_DIR = f"{DATA_CACHE_DIR}/multi_class"
+QA_ALL_SORT_DATA_DIR = f"{QA_DATA_DIR}/qa_data_all_no_label_sort.csv"
+QA_ALL_SORT_CUT_DATA_DIR  = f"{QA_DATA_DIR}/qa_data_all_cut.txt"
+
+# 熵简科技 AI Lab 近期开源了基于 BERT 架构的金融领域预训练语言模型 FinBERT 1.0
+MODEL_NLP_BERT_FINBERT_TF = f"{DATA_CACHE_DIR}/FinBERT_L-12_H-768_A-12_tf"
+# bert-base-chinese
+MODEL_NLP_BERT_CHINESE_TF = f"{DATA_CACHE_DIR}/chinese_L-12_H-768_A-12"
+RUN_MODEL = MODEL_NLP_BERT_FINBERT_TF
+
+# Chinese Medical Intent Dataset(CMID)
+DATA_NLP_CLASS_CMID = f"{DATA_CACHE_DIR}/CMID.json"
+DATA_NLP_CLASS_DISEASES = f"{DATA_CACHE_DIR}/diseases.json"

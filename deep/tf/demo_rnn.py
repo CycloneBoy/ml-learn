@@ -7,6 +7,7 @@
 
 import tensorflow_datasets as tfds
 import tensorflow as tf
+from transformers import BertForMultipleChoice
 
 from util.constant import IMDB_DATA_DIR
 
@@ -18,3 +19,5 @@ if __name__ == '__main__':
     train_dataset, test_dataset = dataset['train'], dataset['test']
 
     print(train_dataset.element_spec)
+
+    BertForMultipleChoice()
