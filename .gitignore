@@ -62,3 +62,4 @@
 /deep/tf/.ipynb_checkpoints
 /deep/tf/logs
 /deep/tf/*.tsv
+/datamining/multilabel/extract_question_rule.py

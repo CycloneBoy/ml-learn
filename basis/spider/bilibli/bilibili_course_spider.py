@@ -45,7 +45,7 @@ def get_need_download(path=BILIBILI_VIDEO_IMAGE_DIR, start_index=59, end_index=1
     file_list = get_file_name_list(path, "*.mp4")
     exist_list = []
     for name in file_list:
-        index = re.findall(r"P(.+?)\.", name)
+        index = re.findall(r"\(P(.+?)\.", name)
         if len(index) > 0:
             exist_list.append(int(index[0]))
         # log.info("{}".format(index))
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     # index = re.findall(r"P(.+?)\.", name)
     # log.info("提取:{}".format(index))
 
-    need_list = get_need_download(start_index=1, end_index=161)
+    need_list = get_need_download(start_index=2, end_index=161)
     for i in need_list:
         log.info("{}".format(i))
         url = url_t + str(i)
