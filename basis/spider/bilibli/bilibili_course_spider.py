@@ -64,6 +64,7 @@ if __name__ == '__main__':
     url = 'https://www.bilibili.com/video/BV1Zt4y1a7Xr?from=search&seid=755424765684966116'
     url_t = "https://www.bilibili.com/video/BV1Zt4y1a7Xr?p="
     url_t = "https://www.bilibili.com/video/BV1Nv41177cA?p="
+    url_t = "https://www.bilibili.com/video/BV17U4y187fQ?p="
 
     # sys.argv = ['you-get', '-o', BILIBILI_VIDEO_IMAGE_DIR, url, '-l']
     # you_get.main()
@@ -81,7 +82,7 @@ if __name__ == '__main__':
     # index = re.findall(r"P(.+?)\.", name)
     # log.info("提取:{}".format(index))
 
-    need_list = get_need_download(start_index=55, end_index=128)
+    need_list = get_need_download(start_index=1, end_index=161)
     for i in need_list:
         log.info("{}".format(i))
         url = url_t + str(i)

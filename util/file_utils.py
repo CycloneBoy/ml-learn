@@ -11,6 +11,7 @@
 import glob
 import json
 import os
+import pickle
 import random
 
 import pandas as pd
@@ -215,6 +216,27 @@ def get_path_dir(file_dir):
         dir_list.extend(dirs)
         # files_list.extend(files)
     return dir_list
+
+
+def save_to_pickle(model, file_name):
+    """
+    保存模型
+    :param model:
+    :param file_name:
+    :return:
+    """
+    check_file_exists(file_name)
+    pickle.dump(model, open(file_name, "wb"))
+
+
+def load_to_model(file_name):
+    """
+     使用pickle加载模型文件
+    :param file_name:
+    :return:
+    """
+    loaded_model = pickle.load(open(file_name, "rb"))
+    return loaded_model
 
 
 if __name__ == '__main__':

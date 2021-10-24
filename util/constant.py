@@ -54,7 +54,7 @@ DATA_EMBEDDING_FINANCIAL_BIGRAM_CHAR = f"{DATA_CACHE_DIR}/sgns.financial.bigram-
 # DATA_EMBEDDING_FINANCIAL_BIGRAM_CHAR = f"{DATA_CACHE_DIR}/sgns.financial.bigram-char.bz2"
 
 NLP_PRETRAIN_DIR = DATA_CACHE_DIR
-# BERT_BASE_CHINESE = '/home/sl/workspace/data/nlp/bert-base-chinese'
+BERT_BASE_CHINESE_TORCH = f'{DATA_CACHE_DIR}/bert-base-chinese'
 ############################################################################
 
 # 爬虫html页面
@@ -118,6 +118,8 @@ TEST_SUMMARY_DOC = "是上世纪90年代末提出的一种计算网页权重的�
 QA_DATA_DIR = f"{DATA_CACHE_DIR}/multi_class"
 QA_ALL_SORT_DATA_DIR = f"{QA_DATA_DIR}/qa_data_all_no_label_sort.csv"
 QA_ALL_SORT_CUT_DATA_DIR  = f"{QA_DATA_DIR}/qa_data_all_cut.txt"
+QA_QUESTION_DATA_DIR  = f"{QA_DATA_DIR}/qa_question.csv"
+
 
 # 熵简科技 AI Lab 近期开源了基于 BERT 架构的金融领域预训练语言模型 FinBERT 1.0
 MODEL_NLP_BERT_FINBERT_TF = f"{DATA_CACHE_DIR}/FinBERT_L-12_H-768_A-12_tf"
