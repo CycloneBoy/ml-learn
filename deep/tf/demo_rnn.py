@@ -20,4 +20,4 @@ if __name__ == '__main__':
 
     print(train_dataset.element_spec)
 
-    BertForMultipleChoice()
+    # BertForMultipleChoice()
