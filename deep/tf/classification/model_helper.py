@@ -10,6 +10,7 @@ import numpy as np
 import tensorflow as tf
 import random as rn
 
+from deep.tf.classification.model.TextAttBiRnn import TextAttBiRNN
 from deep.tf.classification.model.TextCnn import TextCNN
 from deep.tf.classification.model.TextRnn import TextRNN
 
@@ -34,7 +35,7 @@ def checkout_dir(dir_path, do_delete=False):
 
 class ModelHelper:
 
-    def __init__(self, class_num, maxlen, max_features, embedding_dims, epochs, batch_size,model_name):
+    def __init__(self, class_num, maxlen, max_features, embedding_dims, epochs, batch_size, model_name):
         self.class_num = class_num
         self.maxlen = maxlen
         self.max_features = max_features
@@ -42,17 +43,23 @@ class ModelHelper:
         self.epochs = epochs
         self.batch_size = batch_size
         self.callback_list = []
-        self.model_name = model_name
+        self.model_name = str(model_name).lower()
         print('Bulid Model: {} ...'.format(model_name))
         self.create_model(model_name)
 
-    def create_model(self,model_name):
+    def create_model(self, model_name):
         if model_name == "textrnn":
             model = TextRNN(maxlen=self.maxlen,
                             max_features=self.max_features,
                             embedding_dims=self.embedding_dims,
                             class_num=self.class_num,
                             last_activation='softmax')
+        elif model_name == "textattbirnn":
+            model = TextAttBiRNN(maxlen=self.maxlen,
+                                 max_features=self.max_features,
+                                 embedding_dims=self.embedding_dims,
+                                 class_num=self.class_num,
+                                 last_activation='softmax')
         else:
             model = TextCNN(maxlen=self.maxlen,
                             max_features=self.max_features,

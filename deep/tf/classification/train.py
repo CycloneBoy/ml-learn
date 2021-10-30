@@ -23,7 +23,7 @@ epochs = 10
 batch_size = 128
 max_features = 5000
 
-run_model_name = 'textrnn'
+run_model_name = 'TextAttBiRNN'
 
 MODEL_NAME = '{}-epoch-10-emb-200'.format(run_model_name)
 

@@ -63,3 +63,5 @@
 /deep/tf/logs
 /deep/tf/*.tsv
 /datamining/multilabel/extract_question_rule.py
+/deep/tf/classification/logs/
+/deep/tf/classification/save_model_dir/

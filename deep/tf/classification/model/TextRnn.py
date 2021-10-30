@@ -46,8 +46,9 @@ class TextRNN(Model):
             raise AttributeError("User should define 'call' method in sub-class model!")
         _ = self.call(inputs)
 
+
 if __name__ == '__main__':
     model = TextRNN(maxlen=10, max_features=100, embedding_dims=20, class_num=5, )
 
-    model.build_graph(input_shape=(None,10))
+    model.build_graph(input_shape=(None, 10))
     print(model.summary())
