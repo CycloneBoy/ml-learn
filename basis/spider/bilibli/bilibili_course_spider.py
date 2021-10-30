@@ -6,6 +6,7 @@
 
 import os
 import queue
+import random
 import threading
 import time
 import urllib.request
@@ -36,7 +37,7 @@ def get_urls(base_url, start_index, end_index):
 
 def download(urls, directory=BILIBILI_VIDEO_IMAGE_DIR):
     log.info("开始下载:{}".format(urls))
-    sys.argv = ['you-get', '-o', directory, '--no-caption', urls,'--debug']
+    sys.argv = ['you-get', '-o', directory, '--no-caption', urls, '--debug']
     you_get.main()
     log.info("完成下载:{}".format(urls))
 
@@ -53,8 +54,7 @@ def get_need_download(path=BILIBILI_VIDEO_IMAGE_DIR, start_index=59, end_index=1
     need_list = [i for i in range(start_index, end_index + 1) if i not in set(exist_list)]
 
     log.info("已经下载:{} , 还需要下载:{}".format(len(exist_list), len(need_list)))
-    log.info("需要下载列表:{}".format(", ".join([ str(i) for i in need_list])))
-
+    log.info("需要下载列表:{}".format(", ".join([str(i) for i in need_list])))
 
     return need_list
 
@@ -82,9 +82,22 @@ if __name__ == '__main__':
     # index = re.findall(r"P(.+?)\.", name)
     # log.info("提取:{}".format(index))
 
-    need_list = get_need_download(start_index=2, end_index=161)
-    for i in need_list:
-        log.info("{}".format(i))
-        url = url_t + str(i)
-        download(url)
-    pass
+    end_index = 161
+    re_try = end_index
+
+    for retry in range(0, re_try):
+        need_list = get_need_download(start_index=2, end_index=end_index)
+        if len(need_list) == 0:
+            print("下载完毕")
+            break
+
+        for i in need_list:
+            log.info("{}".format(i))
+            url = url_t + str(i)
+            try:
+                download(url)
+            except:
+                print(f"下载失败：{retry + 1}")
+                time.sleep(random.randint(30, 60))
+
+pass

@@ -24,7 +24,7 @@
 *.pt
 *.pkl
 
-
+/datamining/multilabel/rule_algo.py
 
 /nlp/transformer/.ipynb_checkpoints/
 /.idea
