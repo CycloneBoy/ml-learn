@@ -31,9 +31,10 @@ MODEL_DICT = {
     "han": "han",
     "textrcnn": "textrcnn",
     "textrcnn_variant": "textrcnn_variant",
+    "fasttext": "fasttext",
 }
 
-run_model_name = 'textrcnn_variant'
+run_model_name = 'fasttext'
 
 MODEL_NAME = '{}-epoch-10-emb-200'.format(run_model_name)
 
@@ -72,7 +73,7 @@ if __name__ == '__main__':
 
     print("test loss:", test_score[0], "test accuracy", test_score[1])
 
-    model_hepler = ModelHelper(class_num=class_num,
+    model_helper = ModelHelper(class_num=class_num,
                                maxlen=maxlen,
                                maxlen_word=maxlen_word,
                                max_sentence=maxlen_sentence,
@@ -82,7 +83,7 @@ if __name__ == '__main__':
                                batch_size=batch_size,
                                model_name=run_model_name
                                )
-    model_hepler.load_model(checkpoint_path=checkpoint_path)
+    model_helper.load_model(checkpoint_path=checkpoint_path)
     # 重新评估模型
-    loss, acc = model_hepler.model.evaluate(x_test, y_test, verbose=2)
+    loss, acc = model_helper.model.evaluate(x_test, y_test, verbose=2)
     print("Restored model, accuracy: {:5.2f}%".format(100 * acc))

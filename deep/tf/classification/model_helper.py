@@ -10,6 +10,7 @@ import numpy as np
 import tensorflow as tf
 import random as rn
 
+from deep.tf.classification.model.FastText import FastText
 from deep.tf.classification.model.Han import HAN
 from deep.tf.classification.model.Rcnn import TextRCNN
 from deep.tf.classification.model.TextAttBiRnn import TextAttBiRNN
@@ -82,6 +83,12 @@ class ModelHelper:
                              embedding_dims=self.embedding_dims,
                              class_num=self.class_num,
                              kernel_regularizer=None,
+                             last_activation='softmax')
+        elif model_name == "fasttext":
+            model = FastText(maxlen=self.maxlen,
+                             max_features=self.max_features,
+                             embedding_dims=self.embedding_dims,
+                             class_num=self.class_num,
                              last_activation='softmax')
         else:
             model = TextCNN(maxlen=self.maxlen,
