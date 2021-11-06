@@ -86,7 +86,7 @@ if __name__ == '__main__':
     re_try = end_index
 
     for retry in range(0, re_try):
-        need_list = get_need_download(start_index=2, end_index=end_index)
+        need_list = get_need_download(start_index=14, end_index=end_index)
         if len(need_list) == 0:
             print("下载完毕")
             break

@@ -10,8 +10,11 @@ import numpy as np
 import tensorflow as tf
 import random as rn
 
+from deep.tf.classification.model.Han import HAN
+from deep.tf.classification.model.Rcnn import TextRCNN
 from deep.tf.classification.model.TextAttBiRnn import TextAttBiRNN
 from deep.tf.classification.model.TextCnn import TextCNN
+from deep.tf.classification.model.TextRcnnVariant import TextRcnnVariant
 from deep.tf.classification.model.TextRnn import TextRNN
 
 np.random.seed(0)
@@ -19,10 +22,6 @@ rn.seed(0)
 tf.random.set_seed(0)
 
 import os
-from tensorflow.keras.callbacks import EarlyStopping, TensorBoard, ModelCheckpoint
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.datasets import imdb
-from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 
 def checkout_dir(dir_path, do_delete=False):
@@ -35,9 +34,12 @@ def checkout_dir(dir_path, do_delete=False):
 
 class ModelHelper:
 
-    def __init__(self, class_num, maxlen, max_features, embedding_dims, epochs, batch_size, model_name):
+    def __init__(self, class_num, maxlen, max_sentence, maxlen_word, max_features, embedding_dims, epochs, batch_size,
+                 model_name):
         self.class_num = class_num
         self.maxlen = maxlen
+        self.max_sentence = max_sentence
+        self.maxlen_word = maxlen_word
         self.max_features = max_features
         self.embedding_dims = embedding_dims
         self.epochs = epochs
@@ -60,6 +62,27 @@ class ModelHelper:
                                  embedding_dims=self.embedding_dims,
                                  class_num=self.class_num,
                                  last_activation='softmax')
+
+        elif model_name == "han":
+            model = HAN(maxlen_sentence=self.max_sentence,
+                        maxlen_word=self.maxlen_word,
+                        max_features=self.max_features,
+                        embedding_dims=self.embedding_dims,
+                        class_num=self.class_num,
+                        last_activation='softmax')
+        elif model_name == "textrcnn":
+            model = TextRCNN(maxlen=self.maxlen,
+                             max_features=self.max_features,
+                             embedding_dims=self.embedding_dims,
+                             class_num=self.class_num,
+                             last_activation='softmax')
+        elif model_name == "textrcnn_variant":
+            model = TextRcnnVariant(maxlen=self.maxlen,
+                             max_features=self.max_features,
+                             embedding_dims=self.embedding_dims,
+                             class_num=self.class_num,
+                             kernel_regularizer=None,
+                             last_activation='softmax')
         else:
             model = TextCNN(maxlen=self.maxlen,
                             max_features=self.max_features,

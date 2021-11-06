@@ -7,23 +7,33 @@
 """
 训练模型
 """
-
+import numpy as np
 import tensorflow as tf
-from tensorflow.keras.datasets import imdb
-from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+from deep.tf.classification.data_utils import DataUtil
+from deep.tf.classification.model_helper import ModelHelper
 
 # ================  params =========================
-from deep.tf.classification.model_helper import ModelHelper
-from util.constant import IMDB_DATA_DIR
 
 class_num = 2
 maxlen = 400
+maxlen_sentence = 16
+maxlen_word = 25
 embedding_dims = 200
 epochs = 10
 batch_size = 128
 max_features = 5000
 
-run_model_name = 'TextAttBiRNN'
+MODEL_DICT = {
+    "textrnn": "textrnn",
+    "textcnn": "textcnn",
+    "textattbirnn": "textattbirnn",
+    "han": "han",
+    "textrcnn": "textrcnn",
+    "textrcnn_variant": "textrcnn_variant",
+}
+
+run_model_name = 'textrcnn_variant'
 
 MODEL_NAME = '{}-epoch-10-emb-200'.format(run_model_name)
 
@@ -32,27 +42,20 @@ tensorboard_log_dir = './logs/{}'.format(MODEL_NAME)
 # checkpoint_path = "save_model_dir\\{}\\cp-{epoch:04d}.ckpt".format(MODEL_NAME, '')
 checkpoint_path = './save_model_dir/' + MODEL_NAME + '/cp-{epoch:04d}.ckpt'
 
-
 #  ====================================================================
 
 
-def load_data():
-    print('Loading data...')
-    (x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
-    print('Pad sequences (samples x time)...')
-    x_train = pad_sequences(x_train, maxlen=maxlen, padding='post')
-    x_test = pad_sequences(x_test, maxlen=maxlen, padding='post')
-    print('x_train shape:', x_train.shape)
-    print('x_test shape:', x_test.shape)
-
-    return x_train, y_train, x_test, y_test
-
-
 if __name__ == '__main__':
-    x_train, y_train, x_test, y_test = load_data()
+    data_helper = DataUtil(maxlen=maxlen, maxlen_sentence=maxlen_sentence,
+                           maxlen_word=maxlen_word,
+                           max_features=max_features)
+
+    x_train, y_train, x_test, y_test = data_helper.load_data_by_name(run_model_name)
 
     model_helper = ModelHelper(class_num=class_num,
                                maxlen=maxlen,
+                               maxlen_word=maxlen_word,
+                               max_sentence=maxlen_sentence,
                                max_features=max_features,
                                embedding_dims=embedding_dims,
                                epochs=epochs,
@@ -71,6 +74,8 @@ if __name__ == '__main__':
 
     model_hepler = ModelHelper(class_num=class_num,
                                maxlen=maxlen,
+                               maxlen_word=maxlen_word,
+                               max_sentence=maxlen_sentence,
                                max_features=max_features,
                                embedding_dims=embedding_dims,
                                epochs=epochs,
