@@ -248,6 +248,18 @@ def get_dir(file_name):
     return os.path.dirname(os.path.abspath(file_name))
 
 
+def get_file_name(file_name):
+    """
+    获取文件的目录
+    :param file_name:
+    :return:
+    """
+
+    file_dir = os.path.abspath(file_name)
+    name = file_dir[file_dir.rindex('/') + 1:]
+    return name
+
+
 if __name__ == '__main__':
     # test_get_one_news()
 
@@ -263,7 +275,7 @@ if __name__ == '__main__':
     filename = "{}/{}/{}_{}.html".format(DATA_HTML_DIR, "test", "test", 1)
     # check_file_exists(filename)
 
-    build_qa_dataset(DATA_QUESTION_ANSWER_DIR)
+    # build_qa_dataset(DATA_QUESTION_ANSWER_DIR)
 
     # file = "巴黎_2000.txt"
     # total_line = file[file.find("_") + 1:file.find(".")]
