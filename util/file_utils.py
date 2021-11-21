@@ -239,6 +239,15 @@ def load_to_model(file_name):
     return loaded_model
 
 
+def get_dir(file_name):
+    """
+    获取文件的目录
+    :param file_name:
+    :return:
+    """
+    return os.path.dirname(os.path.abspath(file_name))
+
+
 if __name__ == '__main__':
     # test_get_one_news()
 
