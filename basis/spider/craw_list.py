@@ -75,22 +75,22 @@ def saveToFile(filename,body):
     with open(file=filename,mode='w',encoding='utf-8') as f:
         f.write(body)
 
-def test_chrome():
+def atest_chrome():
     chrome_driver = '/usr/local/bin/chromedriver'  # chromedriver的文件位置
     b = webdriver.Chrome(executable_path=chrome_driver)
     b.get('https://www.google.com')
     time.sleep(5)
     b.quit()
 
-def test_chrome2(url):
+def atest_chrome2(url):
     chrome_driver = '/usr/local/bin/chromedriver'  # chromedriver的文件位置
     b = webdriver.Chrome()
-    wait = WebDriverWait(b, 20)
+    wait = WebDriverWait(b, 60)
     b.get(url)
-    time.sleep(10)
+    time.sleep(20)
     b.quit()
 
-def test_foxfire(url):
+def atest_foxfire(url):
     chrome_driver = '/usr/local/bin/chromedriver'  # chromedriver的文件位置
     b = webdriver.Firefox()
     b.get(url)
@@ -98,14 +98,16 @@ def test_foxfire(url):
     b.quit()
 
 if __name__ == '__main__':
-    url = "http://www.mafengwo.cn/u/42370376/note.html"
+    # url = "http://www.mafengwo.cn/u/42370376/note.html"
+    # url = "https://downsub.com/"
+    url = "https://downsub.com/?url=https%3A%2F%2Fyoutu.be%2FMdUkC7Vz3rg"
     # url = "http://www.mafengwo.cn"
     # url = "http://www.baidu.com"
     # url = 'http://hotel.qunar.com/city/beijing_city/'
     # url = "https://www.google.com/"
     # url = "https://www.cnblogs.com/ytkahm"
     # html = getTravelNote(url=url)
-    test_chrome2(url)
+    atest_chrome2(url)
     # test_foxfire(url)
 
     # url_image = 'background-image: url("https://statics0.umustatic.cn//videoweike/teacher/weike/jK1W627e/thumbnail/1581917553.4833.16784.6183267.mp4_00804.jpg");'

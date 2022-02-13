@@ -101,7 +101,7 @@ def save_to_json(filename, content):
     """
     check_file_exists(filename)
     with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(content, f, ensure_ascii=False)
+        json.dump(content, f, ensure_ascii=False,indent=4)
 
 
 def load_to_json(filename):
@@ -250,7 +250,7 @@ def get_dir(file_name):
 
 def get_file_name(file_name):
     """
-    获取文件的目录
+    获取文件的名称
     :param file_name:
     :return:
     """
