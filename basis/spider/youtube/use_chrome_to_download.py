@@ -9,6 +9,9 @@ import traceback
 from collections import OrderedDict
 from typing import List
 
+from docx import Document
+from docx.shared import Inches
+
 from fpdf import FPDF
 from selenium import webdriver
 from selenium.webdriver.chrome.webdriver import WebDriver
@@ -21,7 +24,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 
-from util.file_utils import save_to_json, load_to_json, get_file_name, list_file
+from test.pdf.extract_pdf_word import extract_words_from_txt_and_to_dict
+from util.file_utils import save_to_json, load_to_json, get_file_name, list_file, read_to_text_list
 from util.logger_utils import logger
 
 
@@ -211,6 +215,11 @@ class YoutubeSubtitleDownload(object):
         return video_list_info, video_list_dir
 
     def download_video_list_subtitle(self, url):
+        """
+        get video list subtitle
+        :param url:
+        :return:
+        """
         video_list_info, video_list_dir = self.get_youtube_list(url)
         download_dir = os.path.join(self.download_dir, video_list_dir)
 
@@ -224,14 +233,14 @@ class YoutubeSubtitleDownload(object):
                 traceback.print_exc(e)
                 logger.error(f"success failed: {index + 1} - {video_info['title']}")
 
-    def check_video_subtitle_exist(self, video_info, video_list_dir):
+    def check_video_subtitle_exist(self, video_info, video_list_dir, is_txt=True):
         """
         检查是否已经下载
         :return:
         """
         # [English (auto-generated)] Speak English Like a Native Speaker in 20 Minutes [DownSub.com].srt
         # [Chinese Traditional] Speak English Like a Native Speaker in 20 Minutes [DownSub.com].txt
-        target_file_name = self.get_video_subtitle(video_info)
+        target_file_name = self.get_video_subtitle(video_info, is_txt=is_txt)
 
         download_dir = os.path.join(self.download_dir, video_list_dir)
         all_file_name = list_file(download_dir)
@@ -243,46 +252,114 @@ class YoutubeSubtitleDownload(object):
 
         return flag
 
-    def get_video_subtitle(self, video_info):
+    def get_video_subtitle(self, video_info, is_txt=True):
         """
         获取视频的字幕
         :param video_info:
+        :param is_txt:
         :return:
         """
         title = video_info["title"]
         title = title.replace(":", "_")
-        target_file_name = f"[English (auto-generated)] {title} [DownSub.com].txt"
+        end = "txt" if is_txt else "srt"
+        target_file_name = f"[English (auto-generated)] {title} [DownSub.com].{end}"
 
         return target_file_name
 
-    def to_pdf(self, url):
+    def to_pdf(self, url, is_txt=True):
         video_list_info, video_list_dir = self.get_youtube_list(url)
         download_dir = os.path.join(self.download_dir, video_list_dir)
 
+        video_list_title = video_list_dir
+        video_total = len(video_list_info)
+        video_subtitle_list = []
+        video_title = []
         for index, video_info in enumerate(video_list_info):
-            if not self.check_video_subtitle_exist(video_info=video_info, video_list_dir=video_list_dir):
+            if not self.check_video_subtitle_exist(video_info=video_info, video_list_dir=video_list_dir, is_txt=is_txt):
                 continue
 
-        # save FPDF() class into
-        # a variable pdf
-        pdf = FPDF()
+            target_file_name = self.get_video_subtitle(video_info, is_txt=is_txt)
+            file_name = os.path.join(download_dir, target_file_name)
+            video_subtitle = read_to_text_list(file_name)
 
-        # Add a page
-        pdf.add_page()
+            video_title.append(target_file_name)
+            video_subtitle_list.append(video_subtitle)
 
-        # set style and size of font
-        # that you want in the pdf
-        pdf.set_font("Arial", size=15)
+        # to docx
+        document = Document()
+        document.add_heading(video_list_title, 0)
 
-        # open the text file in read mode
-        f = open("BeautifulSoup.txt", "r")
+        for index, subtitle in enumerate(video_subtitle_list):
+            video_title = video_list_info[index]["title"]
+            video_href = video_list_info[index]["href"]
 
-        # insert the texts in pdf
-        for x in f:
-            pdf.cell(200, 10, txt=x, ln=1, align='C')
+            document.add_heading(video_title, level=1)
+            document.add_paragraph(video_href, style='Intense Quote')
 
-        # save the pdf with name .pdf
-        pdf.output("BeautifulSoup-tutorial.pdf")
+            for item in subtitle:
+                new_item = str(item).strip("\n")
+                if len(new_item) <= 1:
+                    continue
+                p = document.add_paragraph(new_item)
+
+        file_name = f"{self.download_dir}/{video_list_title}.docx"
+        document.save(file_name)
+
+        logger.info(f"output pdf file: {file_name}")
+
+    def to_docx(self, video_title_list):
+        """
+        字幕保存到 docx
+        :param video_title_list:
+        :return:
+        """
+        document = Document()
+
+        document.add_heading('Document Title', 0)
+
+        # pdf = FPDF()
+        # pdf.add_page()
+        # pdf.set_font("Arial", size=15)
+        #
+        # # insert the texts in pdf
+        # for index, subtitle in enumerate(video_subtitle_list):
+        #     video_title = video_list_info[index]["title"]
+        #     video_href = video_list_info[index]["href"]
+        #
+        #     pdf.cell(200, 10, txt=video_title, border=1, ln=1, align='C')
+        #     pdf.cell(200, 10, txt=video_href, ln=1, align='C')
+        #     for item in subtitle:
+        #         pdf.write(item)
+        #
+        #     pdf.cell(200, 10, txt="[END]", ln=1, align='C')
+        #     pdf.cell(200, 10, txt="", ln=1, align='C')
+        #     pdf.cell(200, 10, txt="", ln=1, align='C')
+        #     # pdf.cell(200, 10, txt=x, ln=1, align='C')
+
+    def upload_dict_to_eudic(self, url, upload_name=None):
+        """
+        upload video subtitle list to eudic
+
+        :param url:
+        :param upload_name:
+        :return:
+        """
+        video_list_info, video_list_dir = self.get_youtube_list(url)
+        download_dir = os.path.join(self.download_dir, video_list_dir)
+
+        # to eudic dict
+        extract_words_from_txt_and_to_dict(txt_dir=download_dir,
+                                           save_dir=f"{download_dir}_dict",
+                                           category_name=f"youtube_{video_list_dir}")
+
+    def download_video_list_subtitle_and_to_docx(self, url, ):
+        """
+
+        :return:
+        """
+
+        self.download_video_list_subtitle(url)
+        self.to_pdf(url)
 
 
 if __name__ == '__main__':
@@ -300,7 +377,10 @@ if __name__ == '__main__':
     # atest_chrome2(url)
 
     title_downloader = YoutubeSubtitleDownload()
-    title_downloader.download_video_list_subtitle(url)
+    # title_downloader.download_video_list_subtitle_and_to_docx(url)
+    title_downloader.upload_dict_to_eudic(url)
+    # title_downloader.to_pdf(url)
+    # title_downloader.download_video_list_subtitle(url)
     # title_downloader.get_youtube_list(url)
     # title_downloader.chrome_youtube_subtitle(url)
 

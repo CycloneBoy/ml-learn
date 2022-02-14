@@ -43,7 +43,7 @@ PDF_DIR = "/home/sl/文档/pdf/论文/nlp"
 SAVE_TEXT_DIR = f"{PDF_DIR}/txt"
 
 
-def get_all_words(file_name):
+def get_all_words(file_name, save_txt_dir=SAVE_TEXT_DIR):
     """
     获取所有的文字
     :return:
@@ -51,7 +51,7 @@ def get_all_words(file_name):
     text = extract_text(file_name)
 
     name = get_file_name(file_name)[:-4]
-    save_file = f"{SAVE_TEXT_DIR}/{name}.txt"
+    save_file = f"{save_txt_dir}/{name}.txt"
     logger.info(f"保存解析的PDF: {file_name} ->text: {save_file}")
     save_to_text(save_file, text)
     return text, save_file
@@ -133,19 +133,37 @@ def ad_word_to_eu():
     pass
 
 
-def extract_dict_pdf(pdf_dir):
+def extract_dict_pdf(pdf_dir, save_txt_dir=SAVE_TEXT_DIR):
+    """
+    extract pdf to txt
+    :param pdf_dir:
+    :param save_txt_dir:
+    :return:
+    """
     file_list = list_file(pdf_dir, endswith=".pdf")
     for index, file_name in enumerate(file_list):
         if not str(file_name).startswith("READ"):
             continue
 
-        name = os.path.join(PDF_DIR, file_name)
+        name = os.path.join(pdf_dir, file_name)
         logger.info(f"begin process: {index} - {name}")
-        text_name, save_file = get_all_words(name)
+        text_name, save_file = get_all_words(name, save_txt_dir=save_txt_dir)
         logger.info(f"end process: {index} - {save_file}")
 
 
-def extract_words_form_pdf(txt_dir):
+def extract_words_from_txt_and_to_dict(txt_dir,
+                                       save_dir=PDF_DIR,
+                                       category_name="NLP_", add_time=True, min_length=3):
+    """
+    extract word and upload
+
+    :param txt_dir:
+    :param save_dir:
+    :param category_name:
+    :param add_time:
+    :param min_length:
+    :return:
+    """
     pattern = re.compile('[a-z]+')
     file_list = list_file(txt_dir, endswith=".txt")
 
@@ -156,7 +174,7 @@ def extract_words_form_pdf(txt_dir):
         text = read_to_text(name)
         words = pattern.findall(str.lower(text))
         result_word = filter_english(words)
-        result = filter_words(result_word, min_length=3)
+        result = filter_words(result_word, min_length=min_length)
         word_dict[name] = result
 
     # save to text
@@ -165,31 +183,32 @@ def extract_words_form_pdf(txt_dir):
         all_words.extend(words)
 
     logger.info(f"total words : {len(all_words)}")
-    save_file = f"{PDF_DIR}/all_words.txt"
+    save_file = f"{save_dir}/all_words.txt"
     logger.info(f"保存all_words: {save_file}")
     save_to_text(save_file, "\n".join(all_words))
 
     word_dict = build_word_dict(all_words)
     sort_words = sorted(word_dict.items(), key=lambda x: x[1], reverse=True)
     print(sort_words)
-    save_file = f"{PDF_DIR}/all_words.json"
+    save_file = f"{save_dir}/all_words.json"
     save_to_json(save_file, sort_words)
 
     upload_words = [key for key in word_dict.keys()]
-    save_file = f"{PDF_DIR}/upload_words.txt"
+    save_file = f"{save_dir}/upload_words.txt"
     logger.info(f"保存upload_words: {save_file} - {len(upload_words)}")
     save_to_text(save_file, "\n".join(upload_words))
 
-    upload_to_eu(category_name="NLP_{}".format(now_str(format="%Y_%m_%d")))
+    new_category_name = category_name + now_str(format="%Y_%m_%d") if add_time else category_name
+    upload_to_eu(category_name=new_category_name, save_dir=save_dir)
 
 
-def upload_to_eu(category_name="NLP2021_11_21"):
+def upload_to_eu(category_name="NLP2021_11_21", save_dir=PDF_DIR, ):
     euapi = EuApi()
     res = euapi.add_category(name=category_name)
-    cid = res["id"]
+    cid = res.cid
     print(f" res: {res} - {cid}")
 
-    save_file = f"{PDF_DIR}/upload_words.txt"
+    save_file = f"{save_dir}/upload_words.txt"
     upload_words = read_to_text_list(save_file)
     upload_words = [str(word).replace("\n", '') for word in upload_words]
     logger.info(f"保存upload_words: {save_file} - {len(upload_words)}")
@@ -207,8 +226,8 @@ if __name__ == '__main__':
 
     # get_all_words(file_name)
 
-    extract_dict_pdf(pdf_dir=PDF_DIR)
-    extract_words_form_pdf(txt_dir=SAVE_TEXT_DIR)
+    extract_dict_pdf(pdf_dir=PDF_DIR, save_txt_dir=SAVE_TEXT_DIR)
+    extract_words_from_txt_and_to_dict(txt_dir=SAVE_TEXT_DIR, save_dir=PDF_DIR)
 
     # save_file = f"{get_dir(file_name)}/test.txt"
     # extract_english_word(save_file)

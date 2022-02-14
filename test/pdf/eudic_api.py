@@ -54,7 +54,7 @@ class Words:
         return response
 
 
-def get_token(file_name="eudic_token.txt"):
+def get_token(file_name="/home/sl/workspace/python/a2020/ml-learn/test/pdf/eudic_token.txt"):
     token = read_to_text(file_name)
     logger.info(f"token: {token}")
     return token
