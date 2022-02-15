@@ -101,7 +101,7 @@ def save_to_json(filename, content):
     """
     check_file_exists(filename)
     with open(filename, 'w', encoding='utf-8') as f:
-        json.dump(content, f, ensure_ascii=False,indent=4)
+        json.dump(content, f, ensure_ascii=False, indent=4)
 
 
 def load_to_json(filename):
@@ -152,6 +152,8 @@ def read_to_text_list(path, encoding='utf-8'):
 def list_file(file_dir, endswith=""):
     """读取文件列表"""
     file_list = []
+    if not os.path.exists(file_dir):
+        return file_list
     for file in os.listdir(file_dir):
         if file.endswith(endswith):
             file_list.append(file)

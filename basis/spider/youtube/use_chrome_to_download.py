@@ -360,6 +360,7 @@ class YoutubeSubtitleDownload(object):
 
         self.download_video_list_subtitle(url)
         self.to_pdf(url)
+        # self.upload_dict_to_eudic(url)
 
 
 if __name__ == '__main__':
@@ -371,14 +372,16 @@ if __name__ == '__main__':
         ""
     ]
     # url = "https://downsub.com/?url=https%3A%2F%2Fyoutu.be%2FMdUkC7Vz3rg"
-    url = "https://www.youtube.com/playlist?list=PLdz6EbLJcjJ9ixS2JC_DDFekyC_jTeVLL"
+    # url = "https://www.youtube.com/playlist?list=PLdz6EbLJcjJ9ixS2JC_DDFekyC_jTeVLL"
+    # Vocabulary for IELTS Speaking
+    url = "https://www.youtube.com/playlist?list=PLdz6EbLJcjJ_0NESRsNRd1Q68Dt7FCz76"
     # url = 'https://sec.report/Document/0001670254-20-001152/document_1.pdf'
 
     # atest_chrome2(url)
 
     title_downloader = YoutubeSubtitleDownload()
-    # title_downloader.download_video_list_subtitle_and_to_docx(url)
-    title_downloader.upload_dict_to_eudic(url)
+    title_downloader.download_video_list_subtitle_and_to_docx(url)
+    # title_downloader.upload_dict_to_eudic(url)
     # title_downloader.to_pdf(url)
     # title_downloader.download_video_list_subtitle(url)
     # title_downloader.get_youtube_list(url)
