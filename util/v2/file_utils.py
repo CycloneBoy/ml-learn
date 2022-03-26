@@ -3,6 +3,9 @@
 # @File  : file_utils.py
 # @Author: sl
 # @Date  : 2022/2/18 - 下午10:48
+import shutil
+from urllib.parse import urlparse
+
 from util.v2.common_utils import BaseUtils
 
 import glob
@@ -17,6 +20,7 @@ from util.constant import DATA_TXT_NEWS_DIR, DATA_TXT_STOP_WORDS_GITHUB_DIR, DAT
     DATA_QUESTION_ANSWER_DIR, DATA_CACHE_DIR
 from util.logger_utils import get_log
 from util.nlp_utils import extract_chinese
+from util.v2.constants import Constants
 
 log = get_log("{}.log".format(str(os.path.split(__file__)[1]).replace(".py", '')))
 
@@ -128,8 +132,9 @@ class FileUtils(BaseUtils):
         """检查文件是否存在"""
         dir_name = os.path.dirname(filename)
         if not os.path.exists(dir_name):
-            os.makedirs(dir_name)
+            os.makedirs(dir_name, exist_ok=True)
             log.info("文件夹不存在,创建目录:{}".format(dir_name))
+        return os.path.exists(filename)
 
     @staticmethod
     def read_to_text(path, encoding='utf-8'):
@@ -265,13 +270,46 @@ class FileUtils(BaseUtils):
         return name
 
     @staticmethod
-    def get_url_file_name(file_name):
+    def get_url_file_name(url):
         """
         获取文件的名称
         :param file_name:
         :return:
         """
 
-        file_dir = os.path.abspath(file_name)
-        name = file_dir[file_dir.rindex('/') + 1:]
+        file_dir = FileUtils.get_url_file_path(url, make_dir=False)
+        name = os.path.basename(file_dir)
+        name = name[:name.rindex('.')]
         return name
+
+    @staticmethod
+    def get_url_file_path(url, base_dir=Constants.SPIDER_MAFENGWO_DIR, make_dir=True):
+        """
+        获取文件的名称
+        :param url:   "http://www.mafengwo.cn/travel-scenic-spot/mafengwo/12711.html"
+                        "/photo/mdd/12711.html"
+        :param base_dir:
+        :param make_dir:
+        :return:
+        """
+        parse_url = urlparse(url)
+
+        name = f"{base_dir}{parse_url.path}"
+        file_dir = os.path.dirname(name)
+        if make_dir:
+            os.makedirs(file_dir, exist_ok=True)
+        return name
+
+    @staticmethod
+    def copy_file(src, dst):
+        """
+        获取文件的名称
+        :param src:
+        :param dst:
+        :return:
+        """
+        return shutil.copy(src=src, dst=dst)
+
+
+if __name__ == '__main__':
+    pass

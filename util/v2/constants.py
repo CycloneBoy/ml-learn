@@ -67,11 +67,14 @@ class Constants:
 
     # 爬虫问题保存地址 JSON
     DATA_JSON_DIR = os.path.join(WORK_DIR, "data/txt/json")
+    DIR_DATA_JSON_CITY_INFO = os.path.join(WORK_DIR, "data/txt/json/city_info")
 
     # 问答
     DATA_QUESTION_ANSWER_DIR = os.path.join(DATA_CACHE_DIR, "question/result")
 
     QA_DELIMITER = "|"
+
+    MAFENGWO_TOKEN_FILE = f"{WORK_DIR}/basis/spider/mafengwo/mafengwouser.token"
 
     ############################################################################
     # 测试数据
@@ -141,4 +144,8 @@ class Constants:
     SPIDER_DIR = "/home/sl/workspace/data/spider"
     SPIDER_MAFENGWO_DIR = "/home/sl/workspace/data/spider/mafengwo"
     SPIDER_MAFENGWO_CITY_ALL_DIR = "/home/sl/workspace/data/spider/mafengwo/www.mafengwo.cn_mdd_.html"
-    SPIDER_MFW_CITY_YUNNAN_DIR = "/home/sl/workspace/data/spider/mafengwo/city_info_yunnan.html"
+    SPIDER_MFW_CITY_YUNNAN_DIR = "/home/sl/workspace/data/spider/mafengwo/travel-scenic-spot/mafengwo/12711.html"
+    SPIDER_MFW_CITY_INFO_DIR = f"{SPIDER_MAFENGWO_DIR}/city_info"
+
+    #
+    VIDEO_EYE_MOTION_DIR = f"{DATA_DIR}/video/eye_motion.mp4"
