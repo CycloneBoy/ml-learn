@@ -122,9 +122,9 @@ class FileUtils(BaseUtils):
             return json.load(f)
 
     @staticmethod
-    def get_file_name_list(path, type="*.txt"):
+    def get_file_name_list(file_name, type="*.txt"):
         """获取指定路径下的指定类型的所有文件"""
-        files = glob.glob(os.path.join(path, type))
+        files = glob.glob(os.path.join(file_name, type))
         return files
 
     @staticmethod
@@ -137,14 +137,14 @@ class FileUtils(BaseUtils):
         return os.path.exists(filename)
 
     @staticmethod
-    def read_to_text(path, encoding='utf-8'):
+    def read_to_text(file_name, encoding='utf-8'):
         """读取txt 文件"""
-        with open(path, 'r', encoding=encoding) as f:
+        with open(file_name, 'r', encoding=encoding) as f:
             content = f.read()
             return content
 
     @staticmethod
-    def read_to_text_list(path, encoding='utf-8'):
+    def read_to_text_list(file_name, encoding='utf-8'):
         """
         读取txt文件,默认utf8格式,
         :param path:
@@ -152,7 +152,7 @@ class FileUtils(BaseUtils):
         :return:
         """
         list_line = []
-        with open(path, 'r', encoding=encoding) as f:
+        with open(file_name, 'r', encoding=encoding) as f:
             list_line = f.readlines()
             return list_line
 
@@ -169,15 +169,15 @@ class FileUtils(BaseUtils):
         return file_list
 
     @staticmethod
-    def delete_file(path):
+    def delete_file(file_name):
         """
         删除一个目录下的所有文件
-        :param path:
+        :param file_name:
         :return:
         """
 
-        for i in os.listdir(path):
-            path_children = os.path.join(path, i)
+        for i in os.listdir(file_name):
+            path_children = os.path.join(file_name, i)
             if os.path.isfile(path_children):
                 os.remove(path_children)
             else:  # 递归, 删除目录下的所有文件

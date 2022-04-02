@@ -1,4 +1,5 @@
 basis/spider/mafengwo/mafengwouser.token
+basis/spider/mafengwo/mafengwoCookies.txt
 # 数据目录
 /data
 *.json

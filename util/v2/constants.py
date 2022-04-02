@@ -75,6 +75,7 @@ class Constants:
     QA_DELIMITER = "|"
 
     MAFENGWO_TOKEN_FILE = f"{WORK_DIR}/basis/spider/mafengwo/mafengwouser.token"
+    MAFENGWO_COOKIE_FILE = f"{WORK_DIR}/basis/spider/mafengwo/mafengwoCookies.txt"
 
     ############################################################################
     # 测试数据

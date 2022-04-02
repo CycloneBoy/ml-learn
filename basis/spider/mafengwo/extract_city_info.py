@@ -51,8 +51,10 @@ def get_url_html(url):
 
 class MafengwoSpider(ExtractSpiderBase):
 
-    def __init__(self, url):
+    def __init__(self, url=None, use_driver=False, retry=False):
         super().__init__(url)
+        self.use_driver = use_driver
+        self.retry = retry
 
     def get_city_list(self, ):
         """
@@ -116,10 +118,11 @@ class MafengwoSpider(ExtractSpiderBase):
             "city_note_list": city_note_list,
         }
 
-        logger.info(f'{city_bar_list}')
+        logger.info(f'city_bar_list:{city_bar_list}')
         current_file_name = FileUtils.get_url_file_name(url)
         city_bar_file_name = f"{Constants.SPIDER_MFW_CITY_INFO_DIR}/{current_file_name}.json"
         FileUtils.save_to_json(city_bar_file_name, data)
+        logger.info(f"success:{url} : {city_bar_file_name}")
         FileUtils.copy_file(city_bar_file_name, Constants.DIR_DATA_JSON_CITY_INFO)
 
         success = True if len(city_bar_list) > 0 else False
@@ -158,14 +161,20 @@ class MafengwoSpider(ExtractSpiderBase):
             bar_sub_list = []
             el_hot_city = Selector(text=info_bar, type="html")
             bar_name = el_hot_city.xpath('.//a/span/text()').extract_first()
+            bar_name = self.filter_space(bar_name)
             bar_url = el_hot_city.xpath('.//a/@href').extract_first()
             bar_sub = el_hot_city.xpath('.//div').extract_first()
             if bar_sub is not None:
                 bar_sub_text_list = el_hot_city.xpath(".//li/a/text()").extract()
                 bar_sub_url_list = el_hot_city.xpath(".//li/a/@href").extract()
 
-                for idx, bar_sub in enumerate(bar_sub_text_list):
+                bar_sub_text_list = [item for item in bar_sub_text_list if len(self.filter_space(item)) > 0]
+                bar_sub_url_list = [item for item in bar_sub_url_list if len(self.filter_space(item)) > 0]
+
+                min_len = min(len(bar_sub_text_list), len(bar_sub_url_list))
+                for idx in range(min_len):
                     try:
+                        bar_sub = bar_sub_text_list[idx]
                         bar_sub_list.append({"name": bar_sub, "href": bar_sub_url_list[idx]})
                     except Exception as e:
                         traceback.print_exc()
@@ -352,10 +361,39 @@ class MafengwoSpider(ExtractSpiderBase):
         return url, url_index
 
 
+def extract_list(hot_city_list):
+    """
+    batch extract
+
+    :param hot_city_list:
+    :return:
+    """
+    mfw_spider = MafengwoSpider()
+    for index, data in enumerate(hot_city_list):
+        try:
+            if "status" in data and data['status'] == 1:
+                logger.info(f"down : {index} - {data['name']}")
+                continue
+            name = data["name"]
+            url = f"http://www.mafengwo.cn" + data["href"]
+            logger.info(f"begin : {index} - {name} - {url}")
+            mfw_spider.url = url
+            city_data, success = mfw_spider.get_city_info(url=url, use_driver=False)
+
+            if not success:
+                city_data, success = mfw_spider.get_city_info(url=url, retry=True, use_driver=True)
+            if success:
+                data["status"] = 1
+            else:
+                data["status"] = 0
+            FileUtils.save_to_json(hot_city_list_file_name, hot_city_list, )
+        except Exception as e:
+            traceback.print_exc()
+            print(f"error:{index} - {data}")
+
+
 if __name__ == '__main__':
     pass
-    hot_city_list_file_name = "./hot_city_list.json"
-    hot_city_list = FileUtils.load_to_json(hot_city_list_file_name)
 
     url_list = {
         "mdd": "http://www.mafengwo.cn/mdd/",
@@ -374,7 +412,9 @@ if __name__ == '__main__':
 
     # get_url_html(url)
 
-    mfw_spider = MafengwoSpider(url=url)
+    hot_city_list_file_name = "./hot_city_list.json"
+    hot_city_list = FileUtils.load_to_json(hot_city_list_file_name)
+
     # mfw_spider.get_city_list()
     # mfw_spider.get_city_info(url)
     # mfw_spider.get_url_content(url)
@@ -386,27 +426,8 @@ if __name__ == '__main__':
     city_list = ["city_yn", "city_ukn", "city_yg"]
     # for key in city_list:
     #     mfw_spider.get_city_info(url=url_list[key])
+    # mfw_spider = MafengwoSpider()
+    # need_url, url_index = MafengwoSpider.get_url_by_city_name(hot_city_list=hot_city_list, city_name="东京")
+    # mfw_spider.get_city_info(url=need_url)
 
-    need_url, url_index = MafengwoSpider.get_url_by_city_name(hot_city_list=hot_city_list, city_name="东京")
-    mfw_spider.get_city_info(url=need_url)
-
-    for index, data in enumerate(hot_city_list):
-        try:
-            if "status" in data and data['status'] == 1:
-                logger.info(f"down : {index} - {data['name']} - {url}")
-                continue
-            name = data["name"]
-            url = f"http://www.mafengwo.cn" + data["href"]
-            logger.info(f"begin : {index} - {name} - {url}")
-            data, success = mfw_spider.get_city_info(url=url)
-
-            if not success:
-                data, success = mfw_spider.get_city_info(url=url, retry=True, use_driver=True)
-            if success:
-                data["status"] = 1
-            else:
-                data["status"] = 0
-            FileUtils.save_to_json(hot_city_list_file_name, hot_city_list, )
-        except Exception as e:
-            traceback.print_exc()
-            print(f"error:{index} - {data}")
+    extract_list(hot_city_list)
