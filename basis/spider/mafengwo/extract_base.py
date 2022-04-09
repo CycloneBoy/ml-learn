@@ -64,9 +64,9 @@ class ExtractSpiderBase(ABC):
             "plugins.always_open_pdf_externally": True
         })
         self.driver = webdriver.Chrome(options=self.options)
-        self.driver.implicitly_wait(300)
+        self.driver.implicitly_wait(100)
         # self.driver.maximize_window()
-        self.driver.set_page_load_timeout(300)
+        self.driver.set_page_load_timeout(100)
         # self.driver.set_window_size(1124, 850)
         return self.driver
 
@@ -95,7 +95,7 @@ class ExtractSpiderBase(ABC):
         """
         file_path = FileUtils.get_url_file_path(url)
         # file_path = self.get_html_file_path()
-        if not retry and FileUtils.check_file_exists(file_path):
+        if not retry and self.check_html_exist(file_path):
             content = FileUtils.get_content(file_path, encoding="utf-8")
         else:
             if use_driver:
@@ -103,6 +103,9 @@ class ExtractSpiderBase(ABC):
             else:
                 content = self.get_url_html_by_request(url=url)
             FileUtils.save_to_text(file_path, content)
+
+            if not self.check_html_exist(file_path):
+                content = self.get_url_html(url=url, )
 
         self.content = content
         self.response = Selector(text=content)
@@ -168,6 +171,24 @@ class ExtractSpiderBase(ABC):
     def filter_space(self, content):
         res = str(content).replace("\n", "").replace(" ", "")
         return res
+
+    def check_html_exist(self, file_path):
+        """
+        check
+        :param file_path:
+        :return:
+        """
+        flag = False
+        if FileUtils.check_file_exists(file_path):
+            content = FileUtils.get_content(file_path, encoding="utf-8")
+            response = Selector(text=content)
+            title = response.xpath("/html/head/title/text()").extract_first()
+            if title == "您访问的页面不存在":
+                flag = False
+            else:
+                flag = True
+
+        return flag
 
 
 def demo_spider():

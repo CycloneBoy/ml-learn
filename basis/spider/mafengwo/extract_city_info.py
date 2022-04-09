@@ -120,6 +120,11 @@ class MafengwoSpider(ExtractSpiderBase):
 
         logger.info(f'city_bar_list:{city_bar_list}')
         current_file_name = FileUtils.get_url_file_name(url)
+        # 名称不一致
+        current_city_name = FileUtils.get_url_file_name(city_global_info['mdd_photo_url'])
+        if current_file_name != current_city_name:
+            current_file_name = current_city_name
+
         city_bar_file_name = f"{Constants.SPIDER_MFW_CITY_INFO_DIR}/{current_file_name}.json"
         FileUtils.save_to_json(city_bar_file_name, data)
         logger.info(f"success:{url} : {city_bar_file_name}")
