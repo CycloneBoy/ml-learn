@@ -6,6 +6,7 @@
 from abc import ABC
 import os
 import time
+import json
 import traceback
 from collections import OrderedDict
 from typing import List
@@ -143,12 +144,36 @@ class ExtractSpiderBase(ABC):
     def read_cookie(self, file_name=Constants.MAFENGWO_COOKIE_FILE):
         line = FileUtils.read_to_text_list(file_name)[1]
         self.user_cookies = line
+        return line
 
-    def get_url_html_by_request(self, url):
+    def get_url_html_by_request(self, url, encode="utf-8"):
+        """
+        获取 页面
+        :param url:
+        :param encode:
+        :return:
+        """
         header = self.build_header(url)
-        html = requests.get(url, headers=header).content.decode("utf-8")
+        response = requests.get(url, headers=header)
+        content = response.content
+        html = content.decode(encode)
+        if not str(html).startswith("<!DOCTYPE html>"):
+            html = json.loads(html)
 
         return html
+
+    def get_url_data_by_request(self, url, encode="utf-8"):
+        """
+        获取json data
+        :param url:
+        :param encode:
+        :return:
+        """
+        header = self.build_header(url)
+        conent = requests.get(url, headers=header).content
+
+        json_data = json.loads(conent)
+        print(json_data)
 
     def build_header(self, url=None):
         headers = {
@@ -160,10 +185,9 @@ class ExtractSpiderBase(ABC):
             "accept-language": "zh-CN,zh;q=0.9,en;q=0.8",
             "cookie": self.user_cookies,
             "connection": "keep-alive",
-            "referer": "http://www.mafengwo.cn/travel-scenic-spot/mafengwo/10460.html",
+            "referer": "http://www.mafengwo.cn",
             "Accept-Encoding": "gzip, deflate",
-            "Pragma": "no-cachem{\
-                      ",
+            "Pragma": "no-cache",
         }
 
         return headers
@@ -192,9 +216,12 @@ class ExtractSpiderBase(ABC):
 
 
 def demo_spider():
-    url = "http://www.mafengwo.cn/travel-scenic-spot/mafengwo/10460.html"
+    # url = "http://www.mafengwo.cn/travel-scenic-spot/mafengwo/10460.html"
+    url = "http://www.mafengwo.cn/mdd/photo/ajax_any.php?sAction=getAlbumPhoto&iAlid=1694284234&iIid=23513200"
     spider_base = ExtractSpiderBase(url=url)
     html = spider_base.get_url_html_by_request(url)
+    if isinstance(html, dict):
+        FileUtils.save_to_json("./test.json", html)
     FileUtils.save_to_text("./test.html", html)
 
 

@@ -67,4 +67,4 @@ basis/spider/mafengwo/mafengwoCookies.txt
 /deep/tf/classification/logs/
 /deep/tf/classification/save_model_dir/
 
-/basis/spider/mafengwo/*
+#/basis/spider/mafengwo/*

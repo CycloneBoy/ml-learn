@@ -273,7 +273,7 @@ class FileUtils(BaseUtils):
     def get_url_file_name(url):
         """
         获取文件的名称
-        :param file_name:
+        :param url:
         :return:
         """
 
@@ -281,6 +281,38 @@ class FileUtils(BaseUtils):
         name = os.path.basename(file_dir)
         name = name[:name.rindex('.')]
         return name
+
+    @staticmethod
+    def get_url_file_parent_name(url):
+        """
+        获取文件的父目录名称
+        :param url:
+        :return:
+        """
+        parse_url = urlparse(url)
+        url_path = parse_url.path
+        file_dir = os.path.dirname(url_path)
+        parent_dir_name = os.path.basename(file_dir)
+        return parent_dir_name
+
+    @staticmethod
+    def get_album_photo_path(url):
+        """
+        获取游记图片详情 save path
+           http://www.mafengwo.cn/photo/18671/scenery_23513200/1694284233.html
+
+        :param url:
+        :return:
+        """
+        travel_id = FileUtils.get_url_file_parent_name(url)
+        travel_id = travel_id.split("_")[1]
+        image_id = FileUtils.get_url_file_name(url)
+
+        file_path = FileUtils.get_url_file_path(url)
+        save_dir = os.path.dirname(file_path)
+        save_file_name = f"{save_dir}/{travel_id}_{image_id}.json"
+
+        return save_file_name
 
     @staticmethod
     def get_url_file_path(url, base_dir=Constants.SPIDER_MAFENGWO_DIR, make_dir=True):
@@ -308,6 +340,9 @@ class FileUtils(BaseUtils):
         :param dst:
         :return:
         """
+        if not os.path.exists(dst):
+            dir_name = os.path.dirname(dst)
+            os.makedirs(dir_name, exist_ok=True)
         return shutil.copy(src=src, dst=dst)
 
 

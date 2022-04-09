@@ -143,10 +143,18 @@ class Constants:
     # mafengwo
 
     SPIDER_DIR = "/home/sl/workspace/data/spider"
-    SPIDER_MAFENGWO_DIR = "/home/sl/workspace/data/spider/mafengwo"
+    SPIDER_MAFENGWO_DIR = f"{SPIDER_DIR}/mafengwo"
     SPIDER_MAFENGWO_CITY_ALL_DIR = "/home/sl/workspace/data/spider/mafengwo/www.mafengwo.cn_mdd_.html"
     SPIDER_MFW_CITY_YUNNAN_DIR = "/home/sl/workspace/data/spider/mafengwo/travel-scenic-spot/mafengwo/12711.html"
     SPIDER_MFW_CITY_INFO_DIR = f"{SPIDER_MAFENGWO_DIR}/city_info"
+
+    SPIDER_MFW_TRAVEL_INFO_DIR = f"{SPIDER_MAFENGWO_DIR}/travel_info"
+    SPIDER_MFW_TRAVEL_IMAGE_DIR = f"{SPIDER_MAFENGWO_DIR}/travel_image"
+    SPIDER_MFW_TRAVEL_IMAGE_TOPK_DIR = f"{SPIDER_MAFENGWO_DIR}/travel_image_topk"
+    SPIDER_MFW_TRAVEL_IMAGE_INFO_DIR = f"{SPIDER_MAFENGWO_DIR}/travel_image_info"
+    SPIDER_MFW_TRAVEL_IMAGE_INFO_TOPK_DIR = f"{SPIDER_MAFENGWO_DIR}/travel_image_info_topk"
+
+    SPIDER_MFW_API_GET_AJAX_ANY = "http://www.mafengwo.cn/mdd/photo/ajax_any.php"
 
     #
     VIDEO_EYE_MOTION_DIR = f"{DATA_DIR}/video/eye_motion.mp4"
