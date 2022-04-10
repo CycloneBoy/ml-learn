@@ -48,6 +48,7 @@ class ExtractSpiderBase(ABC):
         self.host_name = host_name
         self.options = Options()
         self.driver = None
+        self.driver = self.get_driver()
         self.file_name = None
         self.content = None
         self.response: Selector = None
@@ -59,16 +60,20 @@ class ExtractSpiderBase(ABC):
         if download_dir is None:
             download_dir = self.download_dir
         self.options.add_experimental_option('prefs', {
+            # "profile.managed_default_content_settings.images": 2,
             "download.default_directory": download_dir,
             "download.prompt_for_download": False,
             "download.directory_upgrade": True,
             "plugins.always_open_pdf_externally": True
         })
+        # 此步骤很重要，设置为开发者模式，防止被各大网站识别出来使用了Selenium
+        self.options.add_experimental_option('excludeSwitches', ['enable-automation'])
         self.driver = webdriver.Chrome(options=self.options)
         self.driver.implicitly_wait(100)
         # self.driver.maximize_window()
         self.driver.set_page_load_timeout(100)
         # self.driver.set_window_size(1124, 850)
+
         return self.driver
 
     def get_url_html(self, url=None, ):
@@ -76,10 +81,24 @@ class ExtractSpiderBase(ABC):
             self.get_driver()
         if url is None:
             url = self.url
-        self.driver.get(url)
 
+        back_cookies = self.driver.get_cookies()
+        self.driver.get(url)
+        logger.info(f"before: {back_cookies}")
+
+        cookies = self.driver.get_cookies()
+        logger.info(f"after:{cookies}")
+        session = {}
+        for i in cookies:
+            session[i.get('name')] = i.get('value')
+
+        logger.info(f"after:{session}")
+
+        # self.driver.add_cookie(cookies)
+
+        # self.driver.get(url)
         content = self.driver.page_source
-        # time.sleep(5)
+        time.sleep(500)
         self.driver.quit()
 
         self.file_name = self.get_html_file_path()
@@ -157,7 +176,8 @@ class ExtractSpiderBase(ABC):
         response = requests.get(url, headers=header)
         content = response.content
         html = content.decode(encode)
-        if not str(html).startswith("<!DOCTYPE html>"):
+        if not str(html).startswith("<!DOCTYPE html>") and str(html).startswith("{"):
+            logger.info(f"html:{html}")
             html = json.loads(html)
 
         return html

@@ -123,7 +123,7 @@ class MafengwoBusinessApi(object):
         album_photo = AlbumPhoto(travel_id=travel_id, image_id=image_id)
 
         save_file_name = FileUtils.get_album_photo_path(url=url)
-        if not retry and FileUtils.check_file_exists(save_file_name):
+        if not retry and self.check_json_exist(save_file_name):
             res = FileUtils.load_to_json(save_file_name)
             logger.info(f"获取游记图片详情,从文件中读取: success:{url} -> {save_file_name}")
         else:
@@ -135,7 +135,7 @@ class MafengwoBusinessApi(object):
             except Exception as e:
                 traceback.print_exc()
                 logger.error(f"获取游记图片详情失败:{data}")
-                res = None
+                res = {}
             if isinstance(res, dict):
                 FileUtils.save_to_json(save_file_name, res)
 
@@ -154,6 +154,17 @@ class MafengwoBusinessApi(object):
         album_photo.parse_from_json(info)
 
         return album_photo
+
+    def check_json_exist(self, file_path):
+        flag = False
+        if FileUtils.check_file_exists(file_path):
+            content = FileUtils.load_to_json(file_path)
+            if "payload" not in content:
+                flag = False
+            else:
+                flag = True
+
+        return flag
 
     def get_travel_note_info(self, url, max_sleep=5, min_count=1):
         """
@@ -306,7 +317,7 @@ def demo_get_image():
 
     url = "http://www.mafengwo.cn/i/23498023.html"
     # url = "http://www.mafengwo.cn/i/23513200.html"
-    data = spider_base.get_travel_note_info(url, max_sleep=2, min_count=2)
+    data = spider_base.get_travel_note_info(url, max_sleep=5, min_count=2)
     print(data)
 
 

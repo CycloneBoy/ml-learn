@@ -89,7 +89,7 @@ class MafengwoSpider(ExtractSpiderBase):
 
     def get_city_info(self, url=None, use_driver=False, retry=False):
         """
-        get city list
+        获取城市攻略详情
 
         :param url:  http://www.mafengwo.cn/travel-scenic-spot/mafengwo/12711.html
         :return:
@@ -282,15 +282,12 @@ class MafengwoSpider(ExtractSpiderBase):
 
         return city_bar_list
 
-    def parse_note(self, response, hot_travel_destination=None):
+    def parse_note(self, response, ):
         """
         提取游记信息
         :param response:
-        :param hot_travel_destination:
         :return:
         """
-        # response = Selector(text=text)
-
         # 获取游记列表
         travel_note_list = response.xpath('//div[contains(@class,"tn-item clearfix")]')
 

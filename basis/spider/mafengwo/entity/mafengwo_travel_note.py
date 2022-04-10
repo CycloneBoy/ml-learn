@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 from attr import dataclass
 
+from util.logger_utils import logger
 from util.v2.file_utils import FileUtils
 
 
@@ -112,7 +113,11 @@ class TravelImage(object):
         """
         self.src = raw_data["src"]
         self.url = raw_data["url"]
-        self.album_photo = AlbumPhoto(data=raw_data["album_photo"])
+        self.album_photo = AlbumPhoto()
+        if "album_photo" in raw_data:
+            self.album_photo.parse_from_json(raw_data["album_photo"])
+        else:
+            logger.error(f"error:{raw_data}")
 
     def get_like_count(self, reply_weight=5, share_weight=3):
         """

@@ -148,6 +148,7 @@ class Constants:
     SPIDER_MFW_CITY_YUNNAN_DIR = "/home/sl/workspace/data/spider/mafengwo/travel-scenic-spot/mafengwo/12711.html"
     SPIDER_MFW_CITY_INFO_DIR = f"{SPIDER_MAFENGWO_DIR}/city_info"
 
+    SPIDER_MFW_TRAVEL_HOT_DIR = f"{SPIDER_MAFENGWO_DIR}/travel_hot"
     SPIDER_MFW_TRAVEL_INFO_DIR = f"{SPIDER_MAFENGWO_DIR}/travel_info"
     SPIDER_MFW_TRAVEL_IMAGE_DIR = f"{SPIDER_MAFENGWO_DIR}/travel_image"
     SPIDER_MFW_TRAVEL_IMAGE_TOPK_DIR = f"{SPIDER_MAFENGWO_DIR}/travel_image_topk"
