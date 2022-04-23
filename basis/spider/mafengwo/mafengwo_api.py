@@ -73,7 +73,7 @@ class MafengwoApi(object):
             }
         return headers
 
-    def sent_request(self, url, data=None, method='GET', encode="utf-8"):
+    def sent_request(self, url, data=None, method='GET', encode="utf-8", **kwargs):
         """
         获取 页面
 
@@ -85,7 +85,7 @@ class MafengwoApi(object):
         """
         header = self.build_header(url)
         # logger.info(f"header:{header}")
-        html = HttpUtils.send_http_request(url=url, header=header, data=data, method=method, encode=encode)
+        html = HttpUtils.send_http_request(url=url, header=header, data=data, method=method, encode=encode, **kwargs)
         if not str(html).startswith("<!DOCTYPE html>") and str(html).startswith("{"):
             html = json.loads(html)
 
@@ -131,7 +131,7 @@ class MafengwoBusinessApi(object):
             data = album_photo.to_request()
             try:
                 res = self.api_util.sent_request(url=Constants.SPIDER_MFW_API_GET_AJAX_ANY, data=data,
-                                                 method="GET")
+                                                 method="GET", timeout=3)
             except Exception as e:
                 traceback.print_exc()
                 logger.error(f"获取游记图片详情失败:{data}")
@@ -315,8 +315,11 @@ def demo_get_image():
     spider_base = MafengwoBusinessApi()
     # data = spider_base.get_album_photo_info(url)
 
-    url = "http://www.mafengwo.cn/i/23498023.html"
+    # url = "http://www.mafengwo.cn/i/23498023.html"
     # url = "http://www.mafengwo.cn/i/23513200.html"
+    # url = "http://www.mafengwo.cn/i/21448504.html"
+    # url = "http://www.mafengwo.cn/i/23497631.html"
+    url = "http://www.mafengwo.cn/i/18292819.html"
     data = spider_base.get_travel_note_info(url, max_sleep=5, min_count=2)
     print(data)
 

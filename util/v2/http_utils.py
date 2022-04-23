@@ -12,7 +12,7 @@ from util.v2.common_utils import BaseUtils
 class HttpUtils(BaseUtils):
 
     @staticmethod
-    def send_http_request(url, header, data=None, method='GET', encode="utf-8"):
+    def send_http_request(url, header, data=None, method='GET', encode="utf-8", **kwargs):
         """
         发送http 请求
         
@@ -33,10 +33,10 @@ class HttpUtils(BaseUtils):
         logger.info("开始发送请求：{} - {} : {}".format(method, url, data))
         if method.upper() == 'GET':
             # r = requests.get(url, params=data, headers=header).content.decode(encode)
-            contents = requests.get(url, params=data, headers=header)
+            contents = requests.get(url, params=data, headers=header, **kwargs)
             r = contents.content.decode(encode)
         elif method.upper() == 'POST':
-            r = requests.post(url, json=data, headers=header).content.decode(encode)
+            r = requests.post(url, json=data, headers=header, **kwargs).content.decode(encode)
         elif method.upper() == 'PATCH':
             r = requests.patch(url, json=data, headers=header).content.decode(encode)
         elif method.upper() == 'DELETE':
