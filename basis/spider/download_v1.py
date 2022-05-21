@@ -54,8 +54,10 @@ def download(url, file_name, file_path='/home/sl/workspace/data/test'):
 
 
 # 下载文件
-def download_v2(url_list, file_path="/home/sl/workspace/python/mafengwo/imagehome/video", thread_size=10):
-    threads, start_time = multi_download(url_list, image_dir=file_path, thread_size=thread_size)
+def download_v2(url_list, file_path="/home/sl/workspace/python/mafengwo/imagehome/video",
+                thread_size=10, save_file_type=None):
+    threads, start_time = multi_download(url_list, image_dir=file_path, thread_size=thread_size,
+                                         save_file_type=save_file_type)
     stop_treads(threads, start_time, url_list)
 
 
@@ -100,11 +102,12 @@ def download_video_from_json():
 
 
 # 下载文件并重命名文件
-def download_file_and_rename(url_list, name_dic=None,file_path="/home/sl/workspace/python/mafengwo/imagehome/video", thread_size=10):
-    download_v2(url_list,file_path=file_path,thread_size=thread_size)
+def download_file_and_rename(url_list, name_dic=None, file_path="/home/sl/workspace/python/mafengwo/imagehome/video",
+                             thread_size=10):
+    download_v2(url_list, file_path=file_path, thread_size=thread_size)
 
     if name_dic != None:
-    # file_path = os.path.join(setImageDir, 'video')
+        # file_path = os.path.join(setImageDir, 'video')
         rename_file(file_path, name_dic)
 
 
@@ -114,7 +117,7 @@ def get_video_name_list(html):
     log.info("video title list length:{}".format(len(title_list)))
     name_list = []
     for index, name in enumerate(title_list):
-        video_name = "{}.{}.mp4".format(index+1, name).replace(" ","")
+        video_name = "{}.{}.mp4".format(index + 1, name).replace(" ", "")
         name_list.append(video_name)
         # log.info(video_name)
     # 去除收尾 非视频名称
@@ -140,7 +143,7 @@ def get_video_url_list(html, title_name_list):
         # 从 style 中获取视频的url
         # url = item[23:-13]
         url = item[item.index('http'):item.index('.mp4') + len('.mp4')]
-        log.info("原始链接:-> {} -> {}".format(index,url))
+        log.info("原始链接:-> {} -> {}".format(index, url))
 
         url = url.replace('thumbnail', 'transcoding')
         url_list.append(url)
@@ -161,7 +164,7 @@ def download_video_from_html(filename):
 
     # log.info(url_list)
     # log.info(name_dic)
-    download_file_and_rename(url_list, name_dic,file_path="/home/sl/workspace/python/mafengwo/imagehome/video3")
+    download_file_and_rename(url_list, name_dic, file_path="/home/sl/workspace/python/mafengwo/imagehome/video3")
 
 
 if __name__ == '__main__':

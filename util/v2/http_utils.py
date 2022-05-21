@@ -36,7 +36,7 @@ class HttpUtils(BaseUtils):
             contents = requests.get(url, params=data, headers=header, **kwargs)
             r = contents.content.decode(encode)
         elif method.upper() == 'POST':
-            r = requests.post(url, json=data, headers=header, **kwargs).content.decode(encode)
+            r = requests.post(url=url, data=data, headers=header).text
         elif method.upper() == 'PATCH':
             r = requests.patch(url, json=data, headers=header).content.decode(encode)
         elif method.upper() == 'DELETE':

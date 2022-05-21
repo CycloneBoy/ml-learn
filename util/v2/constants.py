@@ -68,6 +68,7 @@ class Constants:
     # 爬虫问题保存地址 JSON
     DATA_JSON_DIR = os.path.join(WORK_DIR, "data/txt/json")
     DIR_DATA_JSON_CITY_INFO = os.path.join(WORK_DIR, "data/txt/json/city_info")
+    DIR_DATA_JSON_COURSE_INFO = os.path.join(WORK_DIR, "data/txt/json/course_info")
 
     # 问答
     DATA_QUESTION_ANSWER_DIR = os.path.join(DATA_CACHE_DIR, "question/result")
@@ -76,6 +77,7 @@ class Constants:
 
     MAFENGWO_TOKEN_FILE = f"{WORK_DIR}/basis/spider/mafengwo/mafengwouser.token"
     MAFENGWO_COOKIE_FILE = f"{WORK_DIR}/basis/spider/mafengwo/mafengwoCookies.txt"
+    COURSE_COOKIE_FILE = f"{WORK_DIR}/basis/spider/course/courseCookies.txt"
 
     ############################################################################
     # 测试数据
@@ -159,3 +161,11 @@ class Constants:
 
     #
     VIDEO_EYE_MOTION_DIR = f"{DATA_DIR}/video/eye_motion.mp4"
+
+    ############################################################################
+    # course
+    COURSE_CONFIG_FILE = f"{WORK_DIR}/data/config/spider_course_config.json"
+    COURSE_DIR = f"{SPIDER_DIR}/course"
+    COURSE_JSON_DIR = f"{COURSE_DIR}/json"
+    COURSE_AUDIO_DIR = f"{COURSE_DIR}/audio"
+    COURSE_VIDEO_DIR = f"{COURSE_DIR}/video"

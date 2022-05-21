@@ -345,6 +345,23 @@ class FileUtils(BaseUtils):
             os.makedirs(dir_name, exist_ok=True)
         return shutil.copy(src=src, dst=dst)
 
+    @staticmethod
+    def get_save_file_name_from_url(save_dir, url, save_file_type=None):
+        """
+        获取文件的保存路径
+        :param save_dir: 
+        :param url: 
+        :param save_file_type: 
+        :return: 
+        """
+        sp_filename = url.split("/")
+        if save_file_type == "audio":
+            filename = f"{save_dir}/{sp_filename[len(sp_filename) - 2]}.mp3"
+        else:
+            filename = save_dir + "/" + sp_filename[len(sp_filename) - 1]
+
+        return filename
+
 
 if __name__ == '__main__':
     pass

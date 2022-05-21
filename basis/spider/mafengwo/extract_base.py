@@ -34,6 +34,7 @@ from util.file_utils import save_to_json, load_to_json, get_file_name, list_file
 from util.logger_utils import logger
 from util.v2.constants import Constants
 from util.v2.file_utils import FileUtils
+from util.v2.http_utils import HttpUtils
 
 PATTERN_YOUTUBE_DOWNSUB = "https://downsub.com/?url=https%3A%2F%2Fyoutu.be%2F{}"
 DOWNLOAD_DIR = "/home/sl/workspace/data/video/youtube/audio"
@@ -48,13 +49,17 @@ class ExtractSpiderBase(ABC):
         self.host_name = host_name
         self.options = Options()
         self.driver = None
-        self.driver = self.get_driver()
+        # self.driver = self.get_driver()
         self.file_name = None
         self.content = None
         self.response: Selector = None
         self.username = None
         self.password = None
         self.user_cookies = self.read_cookie()
+
+    def load_config(self, file_name):
+        config = FileUtils.load_to_json(file_name)
+        return config
 
     def get_driver(self, download_dir=None):
         if download_dir is None:
@@ -162,7 +167,7 @@ class ExtractSpiderBase(ABC):
 
     def read_cookie(self, file_name=Constants.MAFENGWO_COOKIE_FILE):
         line = FileUtils.read_to_text_list(file_name)[1]
-        self.user_cookies = line
+        self.user_cookies = str(line).encode("utf-8").decode("latin1")
         return line
 
     def get_url_html_by_request(self, url, encode="utf-8"):
@@ -233,6 +238,29 @@ class ExtractSpiderBase(ABC):
                 flag = True
 
         return flag
+
+    def sent_request(self, url, data=None, method='GET', encode="utf-8", header=None, is_json=False, **kwargs):
+        """
+        获取 页面
+
+        :param url:
+        :param data:
+        :param method:
+        :param encode:
+        :return:
+        """
+        if header is None:
+            header = self.build_header(url)
+        # logger.info(f"header:{header}")
+        html = HttpUtils.send_http_request(url=url, header=header, data=data, method=method, encode=encode, **kwargs)
+
+        if not is_json:
+            html = html.content.decode(encode)
+        else:
+            # if not str(html).startswith("<!DOCTYPE html>") and str(html).startswith("{"):
+            html = json.loads(html)
+
+        return html
 
 
 def demo_spider():
