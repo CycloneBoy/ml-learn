@@ -87,16 +87,46 @@ class FileUtils(BaseUtils):
         print(corpus[sample_inx])
 
     @staticmethod
-    def save_to_text(filename, content, mode='w'):
+    def save_to_text(filename, content, mode='w', encoding='utf-8'):
         """
         保存为文本
         :param filename:
         :param content:
+        :param mode:
+        :param encoding:
         :return:
         """
         FileUtils.check_file_exists(filename)
-        with open(filename, mode, encoding='utf-8') as f:
+        with open(filename, mode, encoding=encoding) as f:
             f.writelines(content)
+
+    @staticmethod
+    def save_to_binary(filename, content, mode='wb', encoding=None):
+        """
+        保存为二进制
+        :param filename:
+        :param content:
+        :param mode:
+        :param encoding:
+        :return:
+        """
+        FileUtils.check_file_exists(filename)
+        with open(filename, mode, encoding=encoding) as f:
+            f.write(content)
+
+    @staticmethod
+    def load_to_binary(filename, mode='rb', encoding=None):
+        """
+        加载为二进制
+        :param filename:
+        :param content:
+        :param mode:
+        :param encoding:
+        :return:
+        """
+        FileUtils.check_file_exists(filename)
+        with open(filename, mode, encoding=encoding) as f:
+            return f.read()
 
     @staticmethod
     def save_to_json(filename, content):
@@ -151,10 +181,14 @@ class FileUtils(BaseUtils):
         :param encoding:
         :return:
         """
-        list_line = []
+
         with open(file_name, 'r', encoding=encoding) as f:
             list_line = f.readlines()
-            return list_line
+            res_list_line = []
+            for line in list_line:
+                res_list_line.append(line.strip("\n"))
+
+            return res_list_line
 
     @staticmethod
     def list_file(file_dir, endswith=""):

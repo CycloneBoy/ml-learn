@@ -34,7 +34,10 @@ class HttpUtils(BaseUtils):
         if method.upper() == 'GET':
             # r = requests.get(url, params=data, headers=header).content.decode(encode)
             contents = requests.get(url, params=data, headers=header, **kwargs)
-            r = contents.content.decode(encode)
+            if encode is not None:
+                r = contents.content.decode(encode)
+            else:
+                r = contents.content
         elif method.upper() == 'POST':
             r = requests.post(url=url, data=data, headers=header).text
         elif method.upper() == 'PATCH':

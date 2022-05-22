@@ -10,10 +10,14 @@ import json
 import traceback
 from collections import OrderedDict
 from typing import List
+import random
 
 import requests
 from docx import Document
 from docx.shared import Inches
+
+import time
+import urllib.request
 
 from fpdf import FPDF
 from scrapy import Selector
@@ -60,6 +64,11 @@ class ExtractSpiderBase(ABC):
     def load_config(self, file_name):
         config = FileUtils.load_to_json(file_name)
         return config
+
+    def sleep(self,max_second=3):
+        sleep_time = random.random() * max_second
+        logger.info(f"sleep_time:{sleep_time}")
+        time.sleep(sleep_time)
 
     def get_driver(self, download_dir=None):
         if download_dir is None:
@@ -252,15 +261,42 @@ class ExtractSpiderBase(ABC):
         if header is None:
             header = self.build_header(url)
         # logger.info(f"header:{header}")
-        html = HttpUtils.send_http_request(url=url, header=header, data=data, method=method, encode=encode, **kwargs)
+        html = None
+        try:
+            html = HttpUtils.send_http_request(url=url, header=header, data=data, method=method, encode=encode, **kwargs)
+        except Exception as e:
+            traceback.print_exc()
+            logger.warn(f"send request error : {method} - {url} - {data}")
 
-        if not is_json:
-            html = html.content.decode(encode)
-        else:
+        # if not is_json:
+        #     html = html.content.decode(encode)
+        if is_json:
             # if not str(html).startswith("<!DOCTYPE html>") and str(html).startswith("{"):
             html = json.loads(html)
 
         return html
+
+    def download_file(self, file_url, file_name):
+        """
+        download_file
+        :param file_url:
+        :param file_name:
+        :return:
+        """
+        starttime = time.time()
+        try:
+            logger.info("开始下载文件: {} -> {}".format(file_url, file_name))
+
+            urllib.request.urlretrieve(file_url, file_name)
+        except Exception as e:
+            print(e)
+            logger.info("下载文件出错: {} -> {}".format(file_url, file_name))
+            logger.error(e)
+
+        endtime = time.time()
+        usetime = endtime - starttime
+        logger.info(f"下载完成一个文件,耗时：%s： %s - %s" % (usetime, file_url, file_name))
+        return file_name
 
 
 def demo_spider():
