@@ -6,6 +6,7 @@ basis/spider/mafengwo/mafengwoCookies.txt
 *.html
 *.xls
 *.xlsx
+*.ts
 
 # 图片
 *.png

@@ -211,6 +211,206 @@ class CourseSpider(ExtractSpiderBase):
         info, save_file_name = self.send_post(url=self.video_info_url, data=data, file_name=file_name)
         return info, save_file_name
 
+    def get_course_video_info_v2(self, resource_id=None, course_index=None):
+        resource_id = self.resource_id
+        course_index = 4
+        video_info, video_info_file_name = self.get_course_video_info(resource_id=resource_id,
+                                                                      course_index=course_index)
+
+        video_data_all = video_info["data"]["bizData"]
+        title = video_data_all['title']
+        video_data = video_data_all['data']
+        video_encode_url = video_data['videoUrl']
+
+        video_info_m3u8 = self.decode_video_url(video_encode_url, course_index, title)
+
+        # download
+        logger.info(f"正在下载:{title}......")
+        video_full_path = f"{self.out_video_dir}/{course_index}_{title}.mp4"
+
+        video_info_m3u8["video_full_path"] = video_full_path
+        video_info_m3u8["video_ts_path"] = f"{video_full_path[:-4]}.ts"
+        video_info_m3u8["video_m3u8_path"] = f"{video_full_path[:-4]}.m3u8"
+        video_info_m3u8["new_m3u8_file_name"] = f"{video_full_path[:-4]}_1.m3u8"
+        video_info_m3u8["video_key_path"] = f"{video_full_path[:-4]}.key"
+
+        key, key_file_name = self.get_video_key(video_info_m3u8)
+
+        logger.info(f"video_info_m3u8 - {video_info_m3u8}")
+
+        self.build_m3u8_file_for_ffmpeg(video_info=video_info_m3u8)
+
+        # self.download_one_video(video_info_m3u8)
+
+        return video_info_m3u8
+
+    def build_video_save_path(self, course_index, title, end_with=".mp4"):
+        """
+
+        :param course_index:
+        :param title:
+        :param end_with:
+        :return:
+        """
+        video_full_path = f"{self.out_video_dir}/{course_index}_{title}{end_with}"
+        return video_full_path
+
+    def decode_video_url(self, video_encode_url, course_index, title):
+        """
+        解码视频URL
+
+        :param video_encode_url:
+        :param course_index:
+        :param title:
+        :return:
+        """
+        # 解码视频URL
+        encrypt_video_url = self.dectypt_video_info(video_encode_url)
+
+        logger.info(f"video_encode_url: {title} - {video_encode_url}")
+        logger.info(f"encrypt_video_url: {title} - {encrypt_video_url}")
+
+        if not re.match("[a-zA-Z0-9]", encrypt_video_url[-1]):
+            encrypt_video_url = encrypt_video_url[:-1]
+        decrypt_urls = str(encrypt_video_url).replace("", "").strip()
+
+        logger.info(f"decrypt_urls: {title} - {decrypt_urls}")
+
+        m3u8_url = decrypt_urls
+        video_url = m3u8_url.split('drm')[0]
+        sign = m3u8_url.split('m3u8?')[-1]
+        video_url = video_url + self.video_url_prefix + sign
+        video_info_m3u8 = {
+            "title": title,
+            "index": course_index,
+            "m3u8_url": m3u8_url,
+            "video_url": video_url,
+        }
+        logger.info(f"video_info_m3u8 - {video_info_m3u8}")
+        return video_info_m3u8
+
+    def dectypt_video_info(self, m3u8_response):
+        '''
+        对被加密的字符串进行解密，主要是替换一些特殊字符，之后再base64逆编码
+        :param m3u8_response: 加密字符串
+        :return: 解密后的字符串
+        '''
+        func = execjs.compile("""g = "3/a0_o6XeKn4zJqdc YMBDwfkPHI-pRig7hTWAjtyS=Em8FC9VbuvlGU+2rLxQ15.NOZs"
+            m = "H1G4w+vMuTqVQmE-0p3Ax79jDWZ_8hygIzeJPCi/=Lbk2FXdUNOc6fnloSaYrB5t.KRs "
+            y = "Ti/DQ5t8Udf4aoPqAVOpwnyC_Xxr IcRem71jLhKBguvGzs63=FJ-H0MZklb+WNSE9Y.2"
+
+
+            b = function (t) {
+                // return t[y[27] + y[32] + m[17] + m[55] + y[12] + g[16] + m[34]](/[^A-Za-z0-9\+\/]/g, "")
+                return t["replace"](/[^A-Za-z0-9\+\/]/g, "")
+            }
+
+            P = function (t) {
+                // return b(t[y[27] + y[32] + m[17] + y[58] + g[2] + m[51] + y[32]](/[-_]/g, (function (t) {
+                //     return t == y[52] ? y[60] : y[2]
+                return b(t["replace"](/[-_]/g, (function (t) {
+                        return t == "-" ? "+" : "/"
+                    }
+                )))
+            }
+
+            function dec_m3u8(t) {
+                //原始代码
+                // return t[y[1] + m[54] + y[9] + y[32] + y[26] + m[50] + y[10]](y[24] + g[50] + g[2]) > -1 ? (t = (t = (t = (t = (t = t[y[27] + m[34] + g[29] + y[58] + m[58] + y[30] + y[32]](m[27] + m[42] + g[2], ""))[y[27] + y[32] + m[17] + y[58] + m[58] + y[30] + m[34]](/@/g, y[35]))[m[60] + y[32] + y[19] + m[55] + y[12] + y[30] + y[32]](/#/g, m[44]))[m[60] + m[34] + g[29] + m[55] + g[2] + y[30] + g[8]](/\$/g, y[48]))[g[58] + g[8] + y[19] + g[53] + m[58] + y[30] + g[8]](/%/g, g[11]),
+                //     I(P(t))) : t
+                // //I就是base64解密函数
+
+                return (t = (t = (t = (t = (t = t["replace"]("_ba", ""))["replace"](/@/g, "1"))["replace"](/#/g, "2"))["replace"](/\$/g, "3"))["replace"](/%/g, "4"),
+                    new Buffer(P(t), 'base64').toString())
+            }""")
+        decrypted_info = func.call("dec_m3u8", m3u8_response)
+        return decrypted_info
+
+    def get_video_key(self, video_info):
+        '''
+        获取并解析解密视频内容的key值
+
+        :param m3u8_url: 视频url
+        :param video_info:
+        :return: 返回key值
+        '''
+        m3u8_url = video_info["m3u8_url"]
+        m3u8_file_name = video_info["video_m3u8_path"]
+        key_file_name = video_info["video_key_path"]
+
+        self.download_file(file_url=m3u8_url, file_name=m3u8_file_name)
+
+        m3u8_content = FileUtils.read_to_text_list(file_name=m3u8_file_name)
+
+        key_url = None
+        for idx, content in enumerate(m3u8_content):
+            uri_pos = content.find("URI")
+            if uri_pos > -1:
+                quotation_mark_pos = content.rfind('"')
+                key_url = content[uri_pos:quotation_mark_pos].split('"')[1]
+                break
+
+        logger.info(f"video_key:{key_url}")
+
+        headers = self.build_header()
+        key = self.sent_request(url=key_url, data=None, method="GET", encode=None, header=headers, is_json=False)
+
+        if key is not None:
+            # key = requests.get(key_url).content
+            FileUtils.save_to_binary(key_file_name, key)
+            logger.info(f"save video_key file:{key_file_name}")
+
+        return key, key_file_name
+
+    def download_one_video(self, video_info):
+        '''
+        下载视频
+
+        :param video_url:
+        :return:
+        '''
+        title = video_info["title"]
+        index = video_info["index"]
+        m3u8_url = video_info["m3u8_url"]
+        video_url = video_info["video_url"]
+        video_full_path = video_info["video_full_path"]
+        video_ts_path = video_info["video_ts_path"]
+
+        # key, key_file_name = self.get_video_key(video_info)
+
+        # 请求视频内容，并解密保存
+        # video = requests.get(video_url, headers=self.headers, stream=True)
+        self.decode_video(video_info)
+
+        logger.info(f"下载完成: {title} - {video_full_path}")
+
+    def decode_video(self, video_info):
+        """
+        解码视频
+
+        :param video_info:
+        :return:
+        """
+        key_file_name = video_info["video_key_path"]
+        video_ts_path = video_info["video_ts_path"]
+        video_full_path = video_info["video_full_path"]
+
+        start_time = time.time()
+        try:
+            logger.info(f"开始解码视频:{video_full_path}")
+            video = FileUtils.load_to_binary(video_ts_path)
+            key = FileUtils.load_to_binary(key_file_name)
+
+            cryptor = AES.new(key, AES.MODE_CBC, key)
+            decrypted_video = cryptor.decrypt(video)
+            FileUtils.save_to_binary(video_full_path, decrypted_video)
+        except Exception as e:
+            traceback.print_exc()
+            logger.warn(f"some error: {video_full_path} ")
+        end_time = time.time()
+        use_time = end_time - start_time
+        logger.info(f"解码视频完毕:耗时:{use_time} - {video_full_path}")
+
     def get_column_info(self):
         """
         获取栏目信息
@@ -659,6 +859,95 @@ class CourseSpider(ExtractSpiderBase):
         video_url_web = video_url1 + video_url2
         return video_url_web
 
+    def check_download_video(self):
+        course_video_list_file_name = f"{self.out_json_dir}/course_video_list.json"
+        course_video_list = FileUtils.load_to_json(course_video_list_file_name)
+        need_web_url_file_name = f"{self.out_json_dir}/course_need_web_man_list.json"
+        modify_need_web_url_file_name = f"{Constants.DIR_DATA_JSON_COURSE_INFO}/course_need_web_man_list.json"
+        FileUtils.copy_file(modify_need_web_url_file_name, self.out_json_dir)
+
+        need_web_url_video_list = FileUtils.load_to_json(modify_need_web_url_file_name)
+        need_web_url_mapping = {item["resource_id"]: index for index, item in enumerate(need_web_url_video_list)}
+
+        all_video_url_list = []
+        need_web_url_list = []
+        for index, course_video in enumerate(course_video_list):
+            video_url = course_video["video_url"]
+            # video_url_web = course_video.get("video_url_web", None)
+            video_url_web = None
+            video_index = course_video["index"]
+            title = course_video["title"]
+            video_ts_path = course_video["video_ts_path"]
+            resource_id = course_video["resource_id"]
+
+            video_save_path = f"{self.out_video_dir_big}/{video_index}_{title}.ts"
+            if FileUtils.check_file_exists(video_save_path):
+                logger.info(f"{video_index} - {title} - {video_save_path} have download down")
+                continue
+
+            # if video_url_web is None and FileUtils.check_file_exists(video_save_path):
+            #     logger.info(f"{index} - {title} - {video_save_path} have download down")
+            #     continue
+            need_web_url_list.append(course_video)
+
+        for item in need_web_url_list:
+            video_ts_path = item["video_ts_path"]
+            logger.info(f"need download: {item['index']} - {item['title']} - {video_ts_path} ")
+
+    def check_course_list_video_info(self):
+        """
+        check course list video info
+
+        :return:
+        """
+        course_info_list_file_name = f"{self.out_json_dir}/course_info_list.json"
+        all_video = FileUtils.load_to_json(course_info_list_file_name)
+        video_title_mapping = {item["info_name"]: item["index"] for item in all_video["course_info_list"]}
+        course_info_list = all_video["course_info_list"]
+
+        logger.info(f"total video list :{len(course_info_list)}")
+
+        need_web_url_list = []
+        for index, course in enumerate(course_info_list):
+            title = course["info_name"]
+            info_type = course["info_type"]
+            video_index = course["index"]
+            video_index = course["index"]
+            info_type = course["info_type"]
+
+            resource_id = course["info"]["resource_id"]
+            if info_type in ["图文", "直播"]:
+                need_web_url_list.append(course)
+                logger.info(f"{video_index} - {title} is {info_type}")
+                continue
+
+            video_save_path = f"{self.out_video_dir_big}/{video_index}_{title}.mp4"
+            if FileUtils.check_file_exists(video_save_path):
+                logger.info(f"{video_index} - {title} - {video_save_path} have download down")
+                continue
+
+            need_web_url_list.append(course)
+
+        for course in need_web_url_list:
+            info_type = course["info_type"]
+            video_index = course["index"]
+            title = course["info_name"]
+
+            logger.info(f"need download: {info_type} - {course['index']} - {course['info_name']}")
+
+            # if info_type in ["直播"]:
+            #     video_key_path = f"{self.out_video_dir}/{video_index}_{title}.key"
+            #     video_ts_path = f"{self.out_video_dir_big}/{video_index}_{title}.ts"
+            #     video_save_path = f"{self.out_video_dir_big}/{video_index}_{title}.mp4"
+            #     video_info_m3u8 = {
+            #         "video_key_path": video_key_path,
+            #         "video_ts_path": video_ts_path,
+            #         "video_full_path": video_save_path,
+            #     }
+            #     self.decode_video(video_info=video_info_m3u8)
+            #
+            #     logger.info(f"{video_index} - {title} - {video_save_path} have  decode_video down")
+
 
 def demo_extract_home():
     course_spider = CourseSpider()
@@ -676,6 +965,8 @@ def demo_extract_home():
     # course_spider.download_video_multi_thread()
     # course_spider.merge_all_video()
     # course_spider.download_video_use_ffmpeg()
+    # course_spider.check_download_video()
+    course_spider.check_course_list_video_info()
 
 
 if __name__ == '__main__':
